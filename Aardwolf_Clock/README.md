@@ -1,5 +1,4 @@
-# Aardwolf-Scripts
-Aardwolf Clock
+# Aardwolf Clock
 
 This is simply a visual cue to the Aardwolf time, including the Season and day of the season. It keeps track of the appropriate sunrise/sunset for each season and changes the background colour based on whether it's considered day time or night time.
 
