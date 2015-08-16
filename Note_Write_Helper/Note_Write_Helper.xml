@@ -81,22 +81,29 @@ function note_wrap(str, limit, indent, indent1)
   indent1 = indent1 or indent
   limit = limit or 79
   local here = 1-#indent1
+  local last_color = ''
   return indent1..str:gsub("(%s+)()(%S+)()",
-                          function(sp, st, word, fi)
-                            local delta = 0
-                            word:gsub('@([@%a])', 
-                            function(c)
-                              if c == '@'     then delta = delta + 1 
-                              elseif c == 'x' then delta = delta + 5
-                              else                 delta = delta + 2 
-                              end
-                            end)
-                            here = here + delta
-                            if fi-here > limit then
-                              here = st - #indent + delta
-                              return "\n"..indent..word
-                            end
-                          end)
+    function(sp, st, word, fi)
+      local delta = 0
+      local color_before_current_word = last_color
+      word:gsub('()@([@%a])', 
+        function(pos, c)
+          if c == '@' then 
+            delta = delta + 1 
+          elseif c == 'x' then 
+            delta = delta + 5
+            last_color = word:sub(pos, pos+4)
+          else                 
+            delta = delta + 2 
+            last_color = word:sub(pos, pos+1)
+          end
+        end)
+      here = here + delta
+      if fi-here > limit then
+        here = st - #indent + delta
+        return "\n"..indent..color_before_current_word..word
+      end
+    end)
 end
 ]]>
 </script>
