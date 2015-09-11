@@ -35,7 +35,7 @@
   <send>if "%1" == "" then
   	ColourNote("white","","======================== How To Use =======================\\n\\ngetcal &lt;if/icefall|inferno|oc|all&gt;\\n\\n===========================================================")
   	else
-  	get_cal("%1")
+  	get_cal(string.gsub("%1"," ",""))
   	end</send>
   </alias>
 </aliases>
@@ -82,7 +82,7 @@ function get_cal(epic)
 	require('tprint')
 
 	local cal_output = {}
-	local epic_list, key = "if icefall inferno oc all", "AIzaSyAHEnr8iiK42hzM21pXSbTrBIQ2ezEEUHA"
+	local epic_list, key, calid = "all if icefall inferno oc", "AIzaSyAHEnr8iiK42hzM21pXSbTrBIQ2ezEEUHA", ""
 	if string.match(epic_list, epic:lower()) then
 
 		if epic:lower() == "icefall" or epic:lower() == "if" then
@@ -91,7 +91,7 @@ function get_cal(epic)
 			calid = "p8est01hkro1bol0bqfsvfm41o%40group.calendar.google.com"
 		elseif epic:lower() == "oc" then
 			calid = "olvq8lncvoufh24b30ml9h2mio%40group.calendar.google.com"
-		else
+		elseif epic:lower() == "all" then
 			calid = "shaelynne22%40gmail.com"
 		end
 
