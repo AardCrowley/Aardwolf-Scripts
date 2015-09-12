@@ -49,23 +49,12 @@
 -- [[Many thanks to Shaelynne for keeping everyone up-to-date with the Epic Calendars! ]]--
 
 function date_check(dateTime)
-	local xyear, xmonth, xday = string.match(dateTime,"(%d+)%-(%d+)%-(%d+)")
 	
-	local xhour, xmin = string.match(dateTime,"%a(%d+):(%d+)")
-	
-	if (os.time()-os.time({year = xyear, month = xmonth, day = xday, hour = xhour or 23, min = xmin or 59, sec = 0})) < 0 then
+	if (os.time(os.date("!*t"))-dateTime) < 0 then
 		return true
 	else
 		return false
 	end
-end
-
-function date_format(dateTime)
-	local xyear, xmonth, xday = string.match(dateTime,"(%d+)%-(%d+)%-(%d+)")
-	
-	local xhour, xmin = string.match(dateTime,"%a(%d+):(%d+)")
-	
-	return os.date ("%A, %B %d %Y at %I:%M%p", os.time({year = xyear, month = xmonth, day = xday, hour = xhour or 0, min = xmin or 0, sec = 0}))
 end
 
 function date_note(dateTime)
@@ -74,6 +63,22 @@ function date_note(dateTime)
 	else
 		return "Note: No start time given, may have already ran."
 	end
+end
+
+function get_tz_offset(dateTime, offset)
+
+	local xyear, xmonth, xday = string.match(dateTime,"(%d+)%-(%d+)%-(%d+)")
+	
+	local xhour, xmin = string.match(dateTime,"%a(%d+):(%d+)")
+	
+	local UTC_from_Eastern = os.time({year = xyear, month = xmonth, day = xday, hour = xhour or 23, min = xmin or 59, sec = 0}) + (offset*3600)
+
+
+	local UTC_time, local_time = os.time(os.date("!*t")), os.time()
+	local time_zone = os.difftime(local_time, UTC_time)
+
+	local converted_time = UTC_from_Eastern + time_zone
+	return converted_time
 end
 
 function get_cal(epic)
@@ -96,16 +101,25 @@ function get_cal(epic)
 		end
 
 		rpage = "https://www.googleapis.com/calendar/v3/calendars/" .. calid .. "/events?key=" .. key
+		tzpage = "http://wwp.greenwichmeantime.com/time/scripts/clock-8/runner.php?tz=america_cayman"
 
 		if async_ok then
 			epage = async.request(rpage,"HTTPS")
+			tpage = async.request(tzpage, "HTTP")
 		end
 
 		retval, page, status, headers, full_status = epage:join()
 		epage = nil
-
+		
 		if status == 200 then
 			epage = json.decode(page)
+		end
+
+		retval, page, status, headers, full_status = tpage:join()
+		tpage = nil
+
+		if status == 200 then
+			tz_off = string.match(page,"%(GMT %-(%d):00%)")
 		end
 
 		for i = 1, #epage.items do
@@ -122,18 +136,19 @@ function get_cal(epic)
 				summary = epage.items[i].summary .. "- "
 			end
 
-			if date_check(starttime) then
-				table.insert(cal_output, summary .. date_format(starttime) .. " " .. date_note(starttime))
+			if date_check(get_tz_offset(starttime, tz_off)) then
+				table.insert(cal_output, summary .. os.date("%A, %B %d %Y at %I:%M%p",get_tz_offset(starttime, tz_off)) .. " " .. date_note(starttime))
 			end
 		end
 		if cal_output[1] then
-			ColourNote("white","","================= Upcoming Runs (MUD time) ================\n\n" .. table.concat(cal_output,"\n") .. "\n\n===========================================================")
+			ColourNote("white","","================ Upcoming Runs (Local time) ===============\n\n" .. table.concat(cal_output,"\n") .. "\n\n===========================================================")
 		else
-			ColourNote("white","","================= Upcoming Runs (MUD time) ================\n\nNo upcoming runs for " .. epic .. "!\n\n===========================================================")
+			ColourNote("white","","================ Upcoming Runs (Local time) ===============\n\nNo upcoming runs for " .. epic .. "!\n\n===========================================================")
 		end
 	else
 		ColourNote("white", "", "======================== EpicError ========================\n\nNot a valid calendar choice (IF/Icefall, Inferno, OC, All)\n\n===========================================================")
 	end
+	epage, tz_off = nil, nil
 end
 ]]>
 </script>
