@@ -25,11 +25,6 @@ Simple command. Use 'grhere' to identify people missing from your group.
 
 </plugin>
 
-
-<!--  Get our standard constants -->
-
-<include name="constants.lua"/>
-
 <!--  Triggers  -->
 
 <triggers>
@@ -85,7 +80,8 @@ EnableTrigger("End_Group",false)</send>
    sequence="100"
   >
   <send>EnableTrigger("Start_Group",true)
-Send("group")</send>
+Send("group")
+Send("echo ")</send>
   </alias>
 </aliases>
 
