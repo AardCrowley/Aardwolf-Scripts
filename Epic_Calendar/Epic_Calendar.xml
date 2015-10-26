@@ -25,6 +25,22 @@
 
 <aliases>
   <alias
+   match="edebug (on|off)"
+   enabled="y"
+   group="EpicTracking"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  <send>if "%1" == "on" then
+  		SetEpicDebug = 1
+  		ColourNote("cyan", "", "Epic debugging on!")
+  		else
+  		SetEpicDebug = 0
+  		ColourNote("cyan", "", "Epic debugging off!")
+  		end</send>
+  </alias>
+  <alias
    match="^getcal(.*?)$"
    enabled="y"
    group="EpicTracking"
@@ -132,6 +148,10 @@ function get_cal(epic)
 			print(status .. ": Status failed!")
 		end
 
+		if SetEpicDebug then
+			ColourNote("cyan", "", "Debugging information:\n", "white", "", "rpage: " .. rpage .. "\nstring_offset: " .. string_offset .. "\noffset_utc: " .. offset_utc .. "\ntimeMin: " .. timeMin, "cyan", "", "End of information\n")
+		end
+
 		if epage.items[1] then
 			for i = 1, #epage.items do
 				starttime, summary = "", epage.items[i].summary or "No summary found!"
@@ -166,6 +186,7 @@ end
 function OnPluginInstall()
 	if not json then json = require 'json' end
 	async_ok, async = pcall (require, "async")
+	SetEpicDebug = 0
 end
 
 ]]>
