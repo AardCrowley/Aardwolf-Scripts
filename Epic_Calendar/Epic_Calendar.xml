@@ -129,7 +129,7 @@ function get_cal(epic)
 			string_offset = "%2b" .. string.format("%02d", math.floor(offset_utc/3600)) .. ":00"
 		end
 
-		local timeMin = os.date("%Y-%m-%dT%I:%M:%S" .. string_offset, os.time())
+		local timeMin = os.date("%Y-%m-%dT%H:%M:%S", os.time()) .. string_offset
 
 		rpage = "https://www.googleapis.com/calendar/v3/calendars/" .. calid .. "/events?key=" .. key .. "&timeMin=" .. timeMin
 
@@ -152,22 +152,26 @@ function get_cal(epic)
 			ColourNote("cyan", "", "Debugging information:\n", "white", "", "rpage: " .. rpage .. "\nstring_offset: " .. string_offset .. "\noffset_utc: " .. offset_utc .. "\ntimeMin: " .. timeMin, "cyan", "", "\nEnd of information\n")
 		end
 
-		if epage.items[1] then
-			for i = 1, #epage.items do
-				starttime, summary = "", epage.items[i].summary or "No summary found!"
+		if epage then
+			if epage.items[1] then
+				for i = 1, #epage.items do
+					starttime, summary = "", epage.items[i].summary or "No summary found!"
 
-				if epage.items[i].start.date then
-					starttime = epage.items[i].start.date
-				else
-					starttime = epage.items[i].start.dateTime
+					if epage.items[i].start.date then
+						starttime = epage.items[i].start.date
+					else
+						starttime = epage.items[i].start.dateTime
+					end
+
+					if #summary < 30 then
+						summary = summary .. string.rep(" ", 22-#summary) .. "- "
+					end
+
 				end
-
-				if #summary < 30 then
-					summary = summary .. string.rep(" ", 22-#summary) .. "- "
-				end
-
+				table.insert(cal_output, summary .. get_local_time(starttime) .. date_note(starttime))
 			end
-			table.insert(cal_output, summary .. get_local_time(starttime) .. date_note(starttime))
+		else
+			ColourNote("cyan", "", "Epic Calendar Error! Something went very wrong trying to get the epage. Let Arcidayne know!")
 		end
 
 		local header_string = " Upcoming Runs (Local time) "
