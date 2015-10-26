@@ -126,7 +126,7 @@ function get_cal(epic)
 		if offset_utc < 0 then
 			string_offset = "-" .. string.format("%02d",(offset_utc*-1)/3600) .. ":00"
 		else
-			string_offset = "+" .. string.format("%02d", math.floor(offset_utc/3600)) .. ":00"
+			string_offset = "%2b" .. string.format("%02d", math.floor(offset_utc/3600)) .. ":00"
 		end
 
 		local timeMin = os.date("%Y-%m-%dT%I:%M:%S" .. string_offset, os.time())
