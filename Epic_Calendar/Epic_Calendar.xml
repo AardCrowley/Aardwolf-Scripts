@@ -148,8 +148,8 @@ function get_cal(epic)
 			print(status .. ": Status failed!")
 		end
 
-		if SetEpicDebug then
-			ColourNote("cyan", "", "Debugging information:\n", "white", "", "rpage: " .. rpage .. "\nstring_offset: " .. string_offset .. "\noffset_utc: " .. offset_utc .. "\ntimeMin: " .. timeMin, "cyan", "", "End of information\n")
+		if SetEpicDebug == 1 then
+			ColourNote("cyan", "", "Debugging information:\n", "white", "", "rpage: " .. rpage .. "\nstring_offset: " .. string_offset .. "\noffset_utc: " .. offset_utc .. "\ntimeMin: " .. timeMin, "cyan", "", "\nEnd of information\n")
 		end
 
 		if epage.items[1] then
