@@ -163,12 +163,11 @@ function get_cal(epic)
 						starttime = epage.items[i].start.dateTime
 					end
 
-					if #summary < 30 then
+					if #summary < 22 then
 						summary = summary .. string.rep(" ", 22-#summary) .. "- "
 					end
-
+					table.insert(cal_output, summary .. get_local_time(starttime) .. date_note(starttime))
 				end
-				table.insert(cal_output, summary .. get_local_time(starttime) .. date_note(starttime))
 			end
 		else
 			ColourNote("cyan", "", "Epic Calendar Error! Something went very wrong trying to get the epage. Let Arcidayne know!")
@@ -177,9 +176,9 @@ function get_cal(epic)
 		local header_string = " Upcoming Runs (Local time) "
 
 		if cal_output[1] then
-			ColourNote("white", "", string.rep("=", 16), "cyan", "", header_string, "white", "", string.rep("=", 16) .. "\n\n", "green", "", table.concat(cal_output, "\n"), "white", "", "\n\n" .. string.rep("=", 60))
+			ColourNote("white", "", string.rep("=", 18), "cyan", "", header_string, "white", "", string.rep("=", 18) .. "\n\n", "green", "", table.concat(cal_output, "\n"), "white", "", "\n\n" .. string.rep("=", 64))
 		else
-			ColourNote("white", "", string.rep("=", 16), "cyan", "", header_string, "white", "", string.rep("=", 16) .. "\n\n", "green", "", "No upcoming runs for " .. epic .. "!", "white", "", "\n\n" .. string.rep("=", 60))
+			ColourNote("white", "", string.rep("=", 18), "cyan", "", header_string, "white", "", string.rep("=", 18) .. "\n\n", "green", "", "No upcoming runs for " .. epic .. "!", "white", "", "\n\n" .. string.rep("=", 64))
 		end
 	else
 		ColourNote("cyan", "", "Epic Calendar Error: ", "white", "", "Valid choices are: IF/Icefall, Inferno, OC, All)")
