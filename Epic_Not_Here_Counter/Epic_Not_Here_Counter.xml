@@ -19,7 +19,7 @@
    >
 <description trim="y">
 <![CDATA[
-Simple command. Use 'grhere' to identify people missing from your group.
+Simple command. Use 'grhere' to identify people missing from your group in the room, or 'grarea' to find people missing in the area.
 ]]>
 </description>
 
@@ -66,6 +66,50 @@ EnableTrigger("Start_Group",false)</send>
 Send("gt @Y" .. #epic_group_not_in_room .. " @CPlayer(s) Missing: @W" .. table.concat(epic_group_not_in_room, ", ") .. "$C")
 EnableTrigger("End_Group",false)</send>
   </trigger>
+  <trigger
+   group="Epic_Not_Here"
+   match="^$"
+   name="End_Area"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  <send>local not_in_area = {}
+EnableTrigger("Get_Names", false)
+
+for k,v in pairs(group_table) do
+    if v == 0 then
+      table.insert(not_in_area, k)
+    end
+end
+EnableTrigger("End_Area", false)
+
+Send("gt @W" .. #not_in_area .. " @Ymember(s) not in the area: @W" .. table.concat(not_in_area, ", ") .. "$C")</send>
+  </trigger>
+  <trigger
+   group="Epic_Not_Here"
+   match="^(\w+)\s"
+   name="Get_Names"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  <send>if group_table["%1"] then
+    group_table["%1"] = 1
+end</send>
+  </trigger>
+  <trigger
+   group="Epic_Not_Here"
+   match="^Players near you\:$"
+   name="PlayersNear"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  <send>EnableTrigger("Get_Names", true)
+EnableTrigger("PlayersNear", false)
+EnableTrigger("End_Area", true)</send>
+  </trigger>
 </triggers>
 
 <!--  Aliases  -->
@@ -82,6 +126,23 @@ EnableTrigger("End_Group",false)</send>
   <send>EnableTrigger("Start_Group",true)
 Send("group")
 Send("echo ")</send>
+  </alias>
+  <alias
+   match="^grarea$"
+   enabled="y"
+   group="Epic_Not_Here"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  <send>group_table = {}
+
+for _,v in ipairs(epic_group_members) do
+    group_table[v.name] = 0
+end
+EnableTrigger("PlayersNear", true)
+Send("where")
+Send("echo")</send>
   </alias>
 </aliases>
 
@@ -100,6 +161,14 @@ Send("echo ")</send>
 <![CDATA[
 function OnHelp ()
   world.Note (world.GetPluginInfo (world.GetPluginID (), 3))
+end
+
+function OnPluginBroadcast(msg, id, name, text)
+  if (id == '3e7dedbe37e44942dd46d264') and (text == 'group') then
+    local res, group = CallPlugin("3e7dedbe37e44942dd46d264", "gmcpval", "group.members")
+
+    assert( loadstring( "epic_group_members = " .. group or "")) ()
+  end
 end
 ]]>
 </script> 
