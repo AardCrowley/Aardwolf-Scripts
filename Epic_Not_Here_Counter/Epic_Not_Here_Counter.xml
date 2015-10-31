@@ -84,7 +84,21 @@ for k,v in pairs(group_table) do
 end
 EnableTrigger("End_Area", false)
 
-Send("gt @W" .. #not_in_area .. " @Ymember(s) not in the area: @W" .. table.concat(not_in_area, ", ") .. "$C")</send>
+if SetCounterDebug == 0 then
+  Send("gt @W" .. #not_in_area .. " @Ymember(s) not in the area: @W" .. table.concat(not_in_area, ", ") .. "$C")
+else
+  ColourNote("white", "darkcyan", "Epic Not Here debugging information!")
+  print("Epic Group")
+  for _,v in ipairs(epicgroup.members) do
+    print(v.name)
+  end
+  print("Group Table")
+  for k,v in pairs(group_table) do
+    print(k, v)
+  end
+  print("Not in Area")
+  print(table.concat(not_in_area, ", "))
+end</send>
   </trigger>
   <trigger
    group="Epic_Not_Here"
@@ -96,7 +110,8 @@ Send("gt @W" .. #not_in_area .. " @Ymember(s) not in the area: @W" .. table.conc
   >
   <send>if group_table["%1"] then
     group_table["%1"] = 1
-end</send>
+end
+</send>
   </trigger>
   <trigger
    group="Epic_Not_Here"
@@ -137,12 +152,30 @@ Send("echo ")</send>
   >
   <send>group_table = {}
 
-for _,v in ipairs(epic_group_members) do
+for _,v in ipairs(epicgroup.members) do
     group_table[v.name] = 0
+    print(v.name)
 end
 EnableTrigger("PlayersNear", true)
 Send("where")
 Send("echo")</send>
+  </alias>
+  <alias
+    match="^grdebug (on|off)$"
+    enabled="y"
+    group="Epic_Not_Here"
+    regexp="y"
+    send_to="12"
+    sequence="100"
+    >
+    <send>if "%1" == "on" then
+      SetCounterDebug = 1
+      ColourNote("white", "darkcyan", "Epic Not Here debugging on!")
+      else
+      SetCounterDebug = 0
+      ColourNote("white", "darkcyan", "Epic Not Here debugging off!")
+      end
+    </send>
   </alias>
 </aliases>
 
@@ -151,8 +184,9 @@ Send("echo")</send>
 <aliases>
   <alias
    script="OnHelp"
-   match="enhhelp"
+   match="^(?:enh|gr)help$"
    enabled="y"
+   regexp="y"
   >
   </alias>
 </aliases>
@@ -165,10 +199,18 @@ end
 
 function OnPluginBroadcast(msg, id, name, text)
   if (id == '3e7dedbe37e44942dd46d264') and (text == 'group') then
-    local res, group = CallPlugin("3e7dedbe37e44942dd46d264", "gmcpval", "group.members")
+    local res, group = CallPlugin("3e7dedbe37e44942dd46d264", "gmcpval", "group")
 
-    assert( loadstring( "epic_group_members = " .. group or "")) ()
+    if group then
+      assert( loadstring( "epicgroup = " .. group or "")) ()
+    else
+      epicgroup = {}
+    end
   end
+end
+
+function OnPluginInstall()
+  SetCounterDebug = 0
 end
 ]]>
 </script> 
