@@ -303,8 +303,8 @@ function custom_theme(name, field, color)
   end
 
   if theme_check == 1 then
-    for _,v in pairs(tracker_db.themes[theme_num]) do
-      if string.lower(v) == string.lower(field) then
+    for i,_ in pairs(tracker_db.themes[theme_num]) do
+      if string.lower(i) == string.lower(field) then
         field_check = 1
       end
     end
@@ -317,6 +317,7 @@ function custom_theme(name, field, color)
   else
     ColourNote(tracker_db.themes[tracker_db.set_theme].text, "", "Theme ", tracker_db.themes[tracker_db.set_theme].special, "", name, tracker_db.themes[tracker_db.set_theme].text, "", " not found. Did you ", tracker_db.themes[tracker_db.set_theme].special, "", "addtheme", tracker_db.themes[tracker_db.set_theme].text, "", " it yet?")
   end
+  SetVariable("atracker", serialize.save("tracker_db"))
 end
 
 function OnPluginBroadcast (msg, id, name, text)
