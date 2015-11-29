@@ -1106,7 +1106,8 @@ function OnHelp ()
 end
 
 ColourNote("green", "", "Themed Tracker Help", "gray", "", " (Original written by GdAnGuS, rewritten and revamped by Arcidayne)\n")
-fmt("q[uest] stats", "Displays quest stats in a \"score\" format")
+fmt("q[uest] stats", "Displays quest stats in a \"score\" format.")
+fmt("q[uest] report [channel]", "Reports to your default channel without arguments, or the channel of your choice.")
 fmt("q[uest] custom [type] [string]", "Allows you to customize strings. Without arguments, will display fields you can set.")
 fmt("q[uest] theme [theme option]", "Sets your current theme to a new theme. Without arguments, displays all your existing themes.")
 fmt("q[uest] addtheme [name]", "Allows you to add a new color theme. It will default all colors to white, so be sure to set the new colors.")
