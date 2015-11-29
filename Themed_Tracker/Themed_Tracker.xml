@@ -40,7 +40,7 @@
       elseif "%1" == "public" and "%2" == "off" then
       tracker_db.report_check = 0
       ColourNote(tracker_db.themes[tracker_db.set_theme].text, "", "No longer reporting to the public!")
-      elseif "%2" == "local" and "%2" == "on" then
+      elseif "%1" == "local" and "%2" == "on" then
       tracker_db.local_check = 1
       ColourNote(tracker_db.themes[tracker_db.set_theme].text, "", "Now reporting locally!")
       else
