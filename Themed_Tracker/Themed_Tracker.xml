@@ -411,7 +411,7 @@ end
 function QuestFail(z)
   
   add_stats(tracker_db.q_db, "total_lost")
-  add_stats(tracker_db.q_cumulative, "lostall")
+  add_stats(tracker_db.q_cumulative, "lost")
 
   local theme = tracker_db.themes[z]
   local brack, head, num, num2, num3, special, subtext, title, text = theme.bracket, theme.heading, theme.number, theme.number2, theme.number3, theme.special, theme.subtext, theme.title, theme.text
