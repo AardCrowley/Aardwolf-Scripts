@@ -415,11 +415,11 @@ function QuestFail(z)
 
   local theme = tracker_db.themes[z]
   local brack, head, num, num2, num3, special, subtext, title, text = theme.bracket, theme.heading, theme.number, theme.number2, theme.number3, theme.special, theme.subtext, theme.title, theme.text
-  local total_q, total_qall = tracker_db.q_db.total_lost + tracker_db.q_db.total_won, tracker_db.q_db.q_cumulative.lostall + tracker_db.q_db.q_cumulative.wonall
+  local total_q, total_qall = tracker_db.q_db.total_lost + tracker_db.q_db.total_won, tracker_db.q_db.q_cumulative.lost + tracker_db.q_db.q_cumulative.won
 
   tracker_db.q_db.total_wonpct = string.format("%0.1f", 100*(tonumber(tracker_db.q_db.total_won)/tonumber(total_q)))
   tracker_db.q_db.total_avgqp = (string.format("%0.1f", tonumber(tracker_db.q_db.total_qp)/tonumber(total_q)))
-  tracker_db.q_cumulative.wonpct = (string.format("%0.1f", 100*(tonumber(tracker_db.q_cumulative.wonall)/tonumber(total_qall))))
+  tracker_db.q_cumulative.wonpct = (string.format("%0.1f", 100*(tonumber(tracker_db.q_cumulative.won)/tonumber(total_qall))))
 
   if tracker_db.local_check == 1 then
     ColourNote(head, "", tracker_db.heading, text, "", "Quest failed.\nFor updated quest stats, type ", brack, "", "'", subtext, "", "q stats", brack, "", "'\n", head, "", tracker_db.heading)
