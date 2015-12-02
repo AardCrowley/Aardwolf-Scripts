@@ -425,7 +425,7 @@ function QuestFail(z)
     ColourNote(head, "", tracker_db.heading, text, "", "Quest failed.\nFor updated quest stats, type ", brack, "", "'", subtext, "", "q stats", brack, "", "'\n", head, "", tracker_db.heading)
   end
   
-  tracker_db.last_quest_report = custom_report(tracker_db.strings.quest_fail_string)
+  tracker_db.last_quest_report = custom_report(tracker_db.strings.quest_failed_string)
 
   if tracker_db.report_check == 1 then
     Send(tracker_db.report_channel .. tracker_db.last_quest_report)
