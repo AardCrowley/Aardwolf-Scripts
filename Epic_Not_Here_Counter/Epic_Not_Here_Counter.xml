@@ -45,7 +45,7 @@ EnableTrigger("Start_Group",false)</send>
   <trigger
    group="Epic_Not_Here"
    keep_evaluating="y"
-   match="^(?:200|201)\s.{3}\s+\*?(\w+)\s+\d+/\d+\s+\d+/\d+\s+\d+/\d+\s+-?\d+\s+\d+\s+\d+\s+[\W]$"
+   match="^(?:200|201)\s.{3}\s+\*?(\w+)\s+\d+/\d+\s+\d+/\d+\s+\d+/\d+\s+-?\d+\s+\d+\s+\d+\*?\s+[\W]$"
    name="In_Room"
    regexp="y"
    send_to="12"
