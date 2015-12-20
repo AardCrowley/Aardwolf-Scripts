@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2015-10-25 12:00:38"
    requires="4.00"
-   version="1.2"
+   version="2"
    >
 <description trim="y">
 <![CDATA[
@@ -238,11 +238,14 @@ function UpdatePlugin()
 
   if status == 200 then
     raw_version = string.match(page, '%s+version="([0-9%.]+)"')
+    print("Raw version: " .. raw_version)
+    print("Plugin version: " .. plugin_version)
   end
 
   if tonumber(raw_version) == tonumber(plugin_version) then
     ColourNote("white", "blue", "You currently have the latest version!")
   elseif tonumber(raw_version) > tonumber(plugin_version) then
+    ColourNote("white", "blue", "Updating from " .. plugin_version .. " to " .. raw_version .. "!")
     local file = io.open(plugin_file, "w")
     file:write(page)
     file:close()
