@@ -186,6 +186,16 @@ Send("echo")</send>
       end
     </send>
   </alias>
+  <alias
+    match="^grreload$"
+    enabled="y"
+    group="Epic_Not_Here"
+    regexp="y"
+    send_to="12"
+    sequence="100"
+    >
+    <send>DoAfterSpecial(2, "ReloadPlugin(GetPluginID ())", 12)</send>
+  </alias>
 </aliases>
 
 <!--  Plugin help  -->
@@ -249,7 +259,8 @@ function UpdatePlugin()
     local file = io.open(plugin_file, "w")
     file:write(page)
     file:close()
-    DoAfterSpecial(1, "ReloadPlugin(GetPluginID())", 12)
+    ColourNote("white", "blue", "Testing")
+    Execute("grreload")
   end
 
   raw_version = nil
