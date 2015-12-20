@@ -237,7 +237,7 @@ function UpdatePlugin()
   raw_return = nil
 
   if status == 200 then
-    raw_version = string.match(page, '%s+version="([0-9%.]+)"')
+    raw_version = string.match(page, '%s%s+version="([0-9%.]+)"')
     print("Raw version: " .. raw_version)
     print("Plugin version: " .. plugin_version)
   end
@@ -249,7 +249,7 @@ function UpdatePlugin()
     local file = io.open(plugin_file, "w")
     file:write(page)
     file:close()
-    LoadPlugin(plugin_file)
+    ReloadPlugin(GetPluginID())
   end
 
   raw_version = nil
