@@ -245,6 +245,7 @@ function get_updater()
       file:write(page)
       file:close()
       LoadPlugin(fname)
+      DoAfterSpecial(2, 'Execute("grupdate")', 12)
     end
 end
 ]]>
