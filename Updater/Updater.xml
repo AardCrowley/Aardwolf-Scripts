@@ -50,7 +50,7 @@ function update_plugin (pid, pfile, pversion, raw)
   end
 
   raw_version = nil
-  UnloadPlugin(pfile)
+  UnloadPlugin(pid)
   LoadPlugin(pfile)
 end
 ]]>
