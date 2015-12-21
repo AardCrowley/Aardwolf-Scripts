@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2015-10-25 12:00:38"
    requires="4.00"
-   version="1"
+   version="2.0"
    >
 <description trim="y">
 <![CDATA[
@@ -151,12 +151,12 @@ Send("echo ")</send>
     sequence="100"
     >
     <send>if not IsPluginInstalled("dff6da0f0c8bd7605fe6a5f4") then
-      get_update()
+      get_updater()
       else
       local pid = GetPluginID()
       local pfile = GetPluginInfo(pid, 6)
       local pversion = GetPluginInfo(pid, 19)
-      CallPlugin("dff6da0f0c8bd7605fe6a5f4", "updateplugin", pid, pfile, pversion, "https://raw.githubusercontent.com/Arcidayne/Aardwolf-Scripts/master/Epic_Not_Here_Counter/Epic_Not_Here_Counter.xml")
+      CallPlugin("dff6da0f0c8bd7605fe6a5f4", "update_plugin", pid, pfile, pversion, "https://raw.githubusercontent.com/Arcidayne/Aardwolf-Scripts/master/Epic_Not_Here_Counter/Epic_Not_Here_Counter.xml")
       end </send>
   </alias>
   <alias
