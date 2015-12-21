@@ -53,11 +53,11 @@ function UpdatePlugin(pid, pfile, pversion, raw)
     file:write(page)
     file:close()
     DoAfterSpecial(3, "ReloadPlugin(" .. pid .. ")", 12)
-    UnloadPlugin(GetPluginID())
-    os.remove(GetPluginInfo(GetPluginID(), 6))
   end
 
   raw_version = nil
+  UnloadPlugin(GetPluginID())
+  os.remove(GetPluginInfo(GetPluginID(), 6))
 end
 ]]>
 </script>
