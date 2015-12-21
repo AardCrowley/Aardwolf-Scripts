@@ -48,6 +48,7 @@ function UpdatePlugin(pid, pfile, pversion, raw)
     ColourNote("white", "blue", "You currently have the latest version!")
   elseif tonumber(raw_version) > tonumber(pversion) then
     ColourNote("white", "blue", "Updating from " .. pversion .. " to " .. raw_version .. "!")
+    Unload(pid)
     local file = io.open(pfile, "w")
     file:write(page)
     file:close()

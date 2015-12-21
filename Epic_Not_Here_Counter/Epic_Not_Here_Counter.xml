@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2015-10-25 12:00:38"
    requires="4.00"
-   version="2"
+   version="1"
    >
 <description trim="y">
 <![CDATA[
@@ -147,9 +147,13 @@ Send("echo ")</send>
     enabled="y"
     group="Epic_Not_Here"
     regexp="y"
-    script="UpdatePlugin"
+    send_to="12"
     sequence="100"
     >
+    <send>local pid = GetPluginID()
+      local pfile, pversion = GetPluginInfo(pid, 20) .. GetPluginInfo(pid, 6), GetPluginInfo(pid, 19)
+      local raw = "https://raw.githubusercontent.com/Arcidayne/Aardwolf-Scripts/master/Epic_Not_Here_Counter/Epic_Not_Here_Counter.xml" 
+      get_update(pid, pfile, pversion, raw)</send>
   </alias>
   <alias
    match="^grarea$"
@@ -194,7 +198,7 @@ Send("echo")</send>
     send_to="12"
     sequence="100"
     >
-    <send>DoAfterSpecial(2, "ReloadPlugin(GetPluginID ())", 12)</send>
+    <send>DoAfterSpecial(2, 'ReloadPlugin("e6cd5104e883a1dd9c4362e2")', 12)</send>
   </alias>
 </aliases>
 
@@ -232,38 +236,24 @@ function OnPluginInstall()
   SetCounterDebug = 0
 end
 
-function UpdatePlugin()
+function get_update(pid, pfile, pversion, raw)
   async_ok, async = pcall (require, "async")
 
-  local raw_page = "https://raw.githubusercontent.com/Arcidayne/Aardwolf-Scripts/master/Epic_Not_Here_Counter/Epic_Not_Here_Counter.xml"
-  local plugin_file = GetPluginInfo(GetPluginID(), 20) .. GetPluginInfo(GetPluginID(), 1) .. ".xml"
-  local plugin_version = GetPluginInfo(GetPluginID(), 19)
-
   if async_ok then
-    raw_return = async.request(raw_page, "HTTPS")
+    updater_page = async.request("https://raw.githubusercontent.com/Arcidayne/Aardwolf-Scripts/master/Updater/Updater.xml", "HTTPS")
   end
 
-  retval, page, status, headers, full_status = raw_return:join()
-  raw_return = nil
+  retval, page, status, headers, full_status = updater_page:join()
+  updater_page = nil
 
-  if status == 200 then
-    raw_version = string.match(page, '%s%s+version="([0-9%.]+)"')
-    print("Raw version: " .. raw_version)
-    print("Plugin version: " .. plugin_version)
-  end
-
-  if tonumber(raw_version) == tonumber(plugin_version) then
-    ColourNote("white", "blue", "You currently have the latest version!")
-  elseif tonumber(raw_version) > tonumber(plugin_version) then
-    ColourNote("white", "blue", "Updating from " .. plugin_version .. " to " .. raw_version .. "!")
-    local file = io.open(plugin_file, "w")
+  if status == 200 and not IsPluginInstalled("dff6da0f0c8bd7605fe6a5f4") then
+    local file = io.open(GetPluginInfo(pid, 20) .. "Updater.xml", "w")
     file:write(page)
     file:close()
-    ColourNote("white", "blue", "Testing")
-    Execute("grreload")
+    LoadPlugin(GetPluginInfo(pid, 20) .. "Updater.xml")
   end
 
-  raw_version = nil
+  CallPlugin('dff6da0f0c8bd7605fe6a5f4', "UpdatePlugin", pid, pfile, pversion, raw)
 end
 
 ]]>
