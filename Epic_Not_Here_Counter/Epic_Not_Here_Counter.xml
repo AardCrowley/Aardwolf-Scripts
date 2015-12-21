@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2015-10-25 12:00:38"
    requires="4.00"
-   version="2"
+   version="1"
    >
 <description trim="y">
 <![CDATA[
@@ -150,10 +150,14 @@ Send("echo ")</send>
     send_to="12"
     sequence="100"
     >
-    <send>local pid = GetPluginID()
-      local pfile, pversion = GetPluginInfo(pid, 6), GetPluginInfo(pid, 19)
-      local raw = "https://raw.githubusercontent.com/Arcidayne/Aardwolf-Scripts/master/Epic_Not_Here_Counter/Epic_Not_Here_Counter.xml" 
-      get_update(pid, pfile, pversion, raw)</send>
+    <send>if not IsPluginInstalled("dff6da0f0c8bd7605fe6a5f4") then
+      get_update()
+      else
+      local pid = GetPluginID()
+      local pfile = GetPluginInfo(pid, 6)
+      local pversion = GetPluginInfo(pid, 19)
+      CallPlugin("dff6da0f0c8bd7605fe6a5f4", "updateplugin", pid, pfile, pversion, "https://raw.githubusercontent.com/Arcidayne/Aardwolf-Scripts/master/Epic_Not_Here_Counter/Epic_Not_Here_Counter.xml")
+      end </send>
   </alias>
   <alias
    match="^grarea$"
@@ -189,16 +193,6 @@ Send("echo")</send>
       ColourNote("white", "darkcyan", "Epic Not Here debugging off!")
       end
     </send>
-  </alias>
-  <alias
-    match="^grreload$"
-    enabled="y"
-    group="Epic_Not_Here"
-    regexp="y"
-    send_to="12"
-    sequence="100"
-    >
-    <send>DoAfterSpecial(2, 'ReloadPlugin("e6cd5104e883a1dd9c4362e2")', 12)</send>
   </alias>
 </aliases>
 
@@ -236,26 +230,23 @@ function OnPluginInstall()
   SetCounterDebug = 0
 end
 
-function get_update(pid, pfile, pversion, raw)
+function get_updater()
   async_ok, async = pcall (require, "async")
+  local fname = GetPluginInfo(GetPluginID(), 20) .. "Updater.xml"
 
   if async_ok then
     updater_page = async.request("https://raw.githubusercontent.com/Arcidayne/Aardwolf-Scripts/master/Updater/Updater.xml", "HTTPS")
   end
-
   retval, page, status, headers, full_status = updater_page:join()
   updater_page = nil
 
-  if status == 200 and not IsPluginInstalled("dff6da0f0c8bd7605fe6a5f4") then
-    local file = io.open(GetPluginInfo(pid, 20) .. "Updater.xml", "w")
-    file:write(page)
-    file:close()
-    LoadPlugin(GetPluginInfo(pid, 20) .. "Updater.xml")
-  end
-
-  CallPlugin('dff6da0f0c8bd7605fe6a5f4', "UpdatePlugin", pid, pfile, pversion, raw)
+    if status == 200 then
+      file = io.open(fname, "w")
+      file:write(page)
+      file:close()
+      LoadPlugin(fname)
+    end
 end
-
 ]]>
 </script> 
 
