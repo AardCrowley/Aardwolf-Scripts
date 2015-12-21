@@ -51,7 +51,7 @@ function update_plugin (pid, pfile, pversion, raw)
 
   raw_version = nil
   UnloadPlugin(pid)
-  LoadPlugin(pfile)
+  DoAfterSpecial(5, "LoadPlugin(" .. pfile .. ")", 12)
 end
 ]]>
 </script>
