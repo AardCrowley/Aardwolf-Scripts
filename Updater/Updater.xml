@@ -7,7 +7,7 @@
 
 <muclient>
 <plugin
-   name="Updater"
+   name="zzUpdaterzz"
    author="Arcidayne"
    id="dff6da0f0c8bd7605fe6a5f4"
    language="Lua"
@@ -26,48 +26,31 @@
 
 <script>
 <![CDATA[
-function UpdatePlugin(pid, pfile, pversion, raw)
+function update_plugin (pid, pfile, pversion, raw)
   async_ok, async = pcall (require, "async")
 
-  ColourNote("white", "blue", pfile)
-
   if async_ok then
-    raw_return = async.request(raw, "HTTPS")
+    plugin_page = async.request(raw, "HTTPS")
   end
 
-  retval, page, status, headers, full_status = raw_return:join()
-  raw_return = nil
+  retval, page, status, headers, full_status = plugin_page:join()
+  plugin_page = nil
 
   if status == 200 then
-    raw_version = string.match(page, '%s%s+version="([0-9%.]+)"')
-    print("Raw version: " .. raw_version)
-    print("Plugin version: " .. pversion)
+    raw_version = tonumber(string.match(page, '%s%s+version="([0-9%.]+)"')) -- Pulls version number
   end
 
-  if tonumber(raw_version) == tonumber(pversion) then
-    ColourNote("white", "blue", "You currently have the latest version!")
-  elseif tonumber(raw_version) > tonumber(pversion) then
-    ColourNote("white", "blue", "Updating from " .. pversion .. " to " .. raw_version .. "!")
-    UnloadPlugin(pid)
+  if raw_version == pversion then
+    ColourNote("white", "blue", GetPluginInfo(pid, 1) .. " is up-to-date.")
+  elseif raw_version > pversion then
+    ColourNote("white", "blue", "Updating from version " .. pversion .. " to " .. raw_version .. ". Do not touch anything.")
     local file = io.open(pfile, "w")
     file:write(page)
     file:close()
-    --DoAfterSpecial(3, "LoadPlugin(" .. pid .. ")", 12)
   end
 
   raw_version = nil
-
-  CallPlugin('e6cd5104e883a1dd9c4362e2', "remove_update", GetPluginID())
-  --UnloadPlugin(GetPluginID())
-  --os.remove(GetPluginInfo(GetPluginID(), 6))
 end
-
-function OnPluginInstall()
-  CallPlugin('e6cd5104e883a1dd9c4362e2',"update_now")
-end
-
 ]]>
 </script>
-
-
 </muclient>
