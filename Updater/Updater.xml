@@ -47,10 +47,11 @@ function update_plugin (pid, pfile, pversion, raw)
     local file = io.open(pfile, "w")
     file:write(page)
     file:close()
-    ReloadPlugin(pid)
   end
 
   raw_version = nil
+  UnloadPlugin(pfile)
+  LoadPlugin(pfile)
 end
 ]]>
 </script>
