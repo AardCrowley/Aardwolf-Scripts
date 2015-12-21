@@ -52,7 +52,7 @@ function UpdatePlugin(pid, pfile, pversion, raw)
     local file = io.open(pfile, "w")
     file:write(page)
     file:close()
-    DoAfterSpecial(3, "ReloadPlugin(" .. pid .. ")", 12)
+    --DoAfterSpecial(3, "LoadPlugin(" .. pid .. ")", 12)
   end
 
   raw_version = nil
