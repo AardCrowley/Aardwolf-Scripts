@@ -51,7 +51,8 @@ function UpdatePlugin(pid, pfile, pversion, raw)
     local file = io.open(pfile, "w")
     file:write(page)
     file:close()
-    ReloadPlugin(pfile)
+    ReloadPlugin(pid)
+    Unload(GetPluginID())
   end
 
   raw_version = nil
