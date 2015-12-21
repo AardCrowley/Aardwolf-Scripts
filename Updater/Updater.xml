@@ -59,6 +59,11 @@ function UpdatePlugin(pid, pfile, pversion, raw)
   UnloadPlugin(GetPluginID())
   os.remove(GetPluginInfo(GetPluginID(), 6))
 end
+
+function OnPluginInstall()
+  CallPlugin('e6cd5104e883a1dd9c4362e2',"update_now")
+end
+
 ]]>
 </script>
 
