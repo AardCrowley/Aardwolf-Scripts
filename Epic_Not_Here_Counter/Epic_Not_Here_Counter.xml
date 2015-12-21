@@ -151,7 +151,7 @@ Send("echo ")</send>
     sequence="100"
     >
     <send>local pid = GetPluginID()
-      local pfile, pversion = GetPluginInfo(pid, 20) .. GetPluginInfo(pid, 6), GetPluginInfo(pid, 19)
+      local pfile, pversion = GetPluginInfo(pid, 6), GetPluginInfo(pid, 19)
       local raw = "https://raw.githubusercontent.com/Arcidayne/Aardwolf-Scripts/master/Epic_Not_Here_Counter/Epic_Not_Here_Counter.xml" 
       get_update(pid, pfile, pversion, raw)</send>
   </alias>
