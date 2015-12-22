@@ -222,25 +222,6 @@ function OnPluginInstall()
   SetCounterDebug = 0
 end
 
---[[function get_updater()
-  async_ok, async = pcall (require, "async")
-  local fname = GetPluginInfo(GetPluginID(), 20) .. "Updater.xml"
-
-  if async_ok then
-    updater_page = async.request("https://raw.githubusercontent.com/Arcidayne/Aardwolf-Scripts/master/Updater/Updater.xml", "HTTPS")
-  end
-  retval, page, status, headers, full_status = updater_page:join()
-  updater_page = nil
-
-    if status == 200 then
-      file = io.open(fname, "w")
-      file:write(page)
-      file:close()
-      LoadPlugin(fname)
-      DoAfterSpecial(2, 'Execute("grupdate")', 12)
-    end
-end]]--
-
 function update_plugin ()
   local pid = GetPluginID ()
   local pfile, pversion = GetPluginInfo(pid, 6), GetPluginInfo(pid, 19)
