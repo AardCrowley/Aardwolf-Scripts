@@ -147,17 +147,9 @@ Send("echo ")</send>
     enabled="y"
     group="Epic_Not_Here"
     regexp="y"
-    send_to="12"
+    script="update_plugin"
     sequence="100"
     >
-    <send>if not IsPluginInstalled("dff6da0f0c8bd7605fe6a5f4") then
-      get_updater()
-      else
-      local pid = GetPluginID()
-      local pfile = GetPluginInfo(pid, 6)
-      local pversion = GetPluginInfo(pid, 19)
-      CallPlugin("dff6da0f0c8bd7605fe6a5f4", "update_plugin", pid, pfile, pversion, "https://raw.githubusercontent.com/Arcidayne/Aardwolf-Scripts/master/Epic_Not_Here_Counter/Epic_Not_Here_Counter.xml")
-      end </send>
   </alias>
   <alias
    match="^grarea$"
@@ -230,7 +222,7 @@ function OnPluginInstall()
   SetCounterDebug = 0
 end
 
-function get_updater()
+--[[function get_updater()
   async_ok, async = pcall (require, "async")
   local fname = GetPluginInfo(GetPluginID(), 20) .. "Updater.xml"
 
@@ -247,6 +239,40 @@ function get_updater()
       LoadPlugin(fname)
       DoAfterSpecial(2, 'Execute("grupdate")', 12)
     end
+end]]--
+
+function update_plugin ()
+  local pid = GetPluginID ()
+  local pfile, pversion = GetPluginInfo(pid, 6), GetPluginInfo(pid, 19)
+  local raw = "https://raw.githubusercontent.com/Arcidayne/Aardwolf-Scripts/master/Epic_Not_Here_Counter/Epic_Not_Here_Counter.xml"
+  async_ok, async = pcall (require, "async")
+
+  if async_ok then
+    plugin_page = async.request(raw, "HTTPS")
+  end
+
+  retval, page, status, headers, full_status = plugin_page:join()
+  plugin_page = nil
+
+  if status == 200 then
+    raw_version = tonumber(string.match(page, '%s%s+version="([0-9%.]+)"')) -- Pulls version number
+  end
+
+  if raw_version == pversion then
+    ColourNote("white", "blue", GetPluginInfo(pid, 1) .. " is up-to-date.")
+  elseif raw_version > pversion then
+    ColourNote("white", "blue", "Updating from version " .. pversion .. " to " .. raw_version .. ". Do not touch anything.")
+    local file = io.open(pfile, "w")
+    file:write(page)
+    file:close()
+  end
+
+  raw_version = nil
+  if "" == GetAlphaOption("script_prefix") then
+     SetAlphaOption("script_prefix", "\\\\\\")
+  end
+
+  Execute(GetAlphaOption("script_prefix").."DoAfterSpecial(1, \"ReloadPlugin('"..GetPluginID().."')\", sendto.script)")
 end
 ]]>
 </script> 
