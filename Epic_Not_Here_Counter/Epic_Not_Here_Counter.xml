@@ -229,12 +229,12 @@ function update_plugin ()
   async_ok, async = pcall (require, "async")
 
   if async_ok then
-    plugin_page = async.doAsyncRemoteRequest(raw, function(retval, page, status, headers, full_status, request_url) if status == 200 then raw_version = tonumber(page:match('%s%s+version="([0-9%.]+)"') end end, "HTTPS")
+    plugin_page = async.doAsyncRemoteRequest(raw, function(retval, page, status, headers, full_status, request_url) if status == 200 then raw_version = page:match('%s%s+version="([0-9%.]+)"') end end, "HTTPS")
   end
 
-  if raw_version == pversion then
+  if tonumber(raw_version) == pversion then
     ColourNote("white", "blue", GetPluginInfo(pid, 1) .. " is up-to-date.")
-  elseif raw_version > pversion then
+  elseif to_number(raw_version) > pversion then
     ColourNote("white", "blue", "Updating from version " .. pversion .. " to " .. raw_version .. ". Do not touch anything.")
     local file = io.open(pfile, "w")
     file:write(page)
