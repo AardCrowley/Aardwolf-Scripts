@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2015-10-25 12:00:38"
    requires="4.00"
-   version="2.1"
+   version="2.2"
    >
 <description trim="y">
 <![CDATA[
@@ -229,7 +229,7 @@ function update_plugin ()
   async_ok, async = pcall (require, "async")
 
   if async_ok then
-    plugin_page = async.doAsyncRemoteRequest(raw, function(retval, page, status, headers, full_status, request_url) if status == 200 then raw_version = tonumber(page:match('%s%s+version="([0-9%.]+)"', "HTTPS")
+    plugin_page = async.doAsyncRemoteRequest(raw, function(retval, page, status, headers, full_status, request_url) if status == 200 then raw_version = tonumber(page:match('%s%s+version="([0-9%.]+)"') end end, "HTTPS")
   end
 
   if raw_version == pversion then
