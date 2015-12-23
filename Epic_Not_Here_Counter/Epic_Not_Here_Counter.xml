@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2015-10-25 12:00:38"
    requires="4.00"
-   version="2.3"
+   version="2.4"
    >
 <description trim="y">
 <![CDATA[
@@ -225,11 +225,10 @@ end
 function raw_get(retval, page, status, headers, full_status, request_url)
   if status == 200 then
     raw_version = tonumber(string.match(page, '%s%s+version="([0-9%.]+)"'))
-    print(type(raw_version), raw_version)
-    print(type(GetPluginInfo(GetPluginID(), 19)), GetPluginInfo(GetPluginID(), 19))
   end
+
   if raw_version == GetPluginInfo(GetPluginID(), 19) then
-    ColourNote("white", "blue", GetPluginInfo(pid, 1) .. " is up-to-date.")
+    ColourNote("white", "blue", GetPluginInfo(GetPluginID(), 1) .. " is up-to-date.")
   elseif raw_version > GetPluginInfo(GetPluginID(), 19) then
     ColourNote("white", "blue", "Updating from version " .. GetPluginInfo(GetPluginID(), 19) .. " to " .. raw_version .. ". Do not touch anything.")
     local file = io.open(GetPluginInfo(GetPluginID(), 6), "w")
