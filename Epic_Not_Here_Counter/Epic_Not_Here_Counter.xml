@@ -15,11 +15,11 @@
    save_state="y"
    date_written="2015-10-25 12:00:38"
    requires="4.00"
-   version="2.0"
+   version="2.1"
    >
 <description trim="y">
 <![CDATA[
-Simple command. Use 'grhere' to identify people missing from your group in the room, or 'grarea' to find people missing in the area.
+Simple command. Use 'grhere' to identify people missing from your group in the room, or 'grarea' to find people missing in the area. Use 'grupdate' to automatically update plugin.
 ]]>
 </description>
 
@@ -229,14 +229,7 @@ function update_plugin ()
   async_ok, async = pcall (require, "async")
 
   if async_ok then
-    plugin_page = async.request(raw, "HTTPS")
-  end
-
-  retval, page, status, headers, full_status = plugin_page:join()
-  plugin_page = nil
-
-  if status == 200 then
-    raw_version = tonumber(string.match(page, '%s%s+version="([0-9%.]+)"')) -- Pulls version number
+    plugin_page = async.doAsyncRemoteRequest(raw, function(retval, page, status, headers, full_status, request_url) if status == 200 then raw_version = tonumber(page:match('%s%s+version="([0-9%.]+)"', "HTTPS")
   end
 
   if raw_version == pversion then
