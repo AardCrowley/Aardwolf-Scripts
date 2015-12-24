@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2015-10-25 12:00:38"
    requires="4.00"
-   version="2.5"
+   version="2.6"
    >
 <description trim="y">
 <![CDATA[
@@ -101,7 +101,7 @@ EnableTrigger("End_Area", true)</send>
    sequence="100"
   >
   <send>local group_not_here = {}
-    for _,v in iparis(epicgroup.members) do
+    for _,v in ipairs(epicgroup.members) do
       if v.here == 0 then
       table.insert(group_not_here, v.name)
       end
