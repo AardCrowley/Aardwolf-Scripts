@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2015-10-25 12:00:38"
    requires="4.00"
-   version="2.4"
+   version="2.5"
    >
 <description trim="y">
 <![CDATA[
@@ -28,44 +28,6 @@ Simple command. Use 'grhere' to identify people missing from your group in the r
 <!--  Triggers  -->
 
 <triggers>
-  <trigger
-   group="Epic_Not_Here"
-   keep_evaluating="y"
-   match="^Lvl\/Gld\s+Name\s+Hp\s+Mana\s+Moves\s+Align\s+TNL\s+Qt\s+Here\?$"
-   name="Start_Group"
-   regexp="y"
-   send_to="12"
-   sequence="100"
-  >
-  <send>epic_group_not_in_room = {}
-EnableTrigger("In_Room",true)
-EnableTrigger("End_Group",true)
-EnableTrigger("Start_Group",false)</send>
-  </trigger>
-  <trigger
-   group="Epic_Not_Here"
-   keep_evaluating="y"
-   match="^(?:200|201)\s.{3}\s+\*?(\w+)\s+\d+/\d+\s+\d+/\d+\s+\d+/\d+\s+-?\d+\s+\d+\s+\d+\*?\s+[\W]$"
-   name="In_Room"
-   regexp="y"
-   send_to="12"
-   sequence="100"
-  >
-  <send>table.insert(epic_group_not_in_room,"%1")</send>
-  </trigger>
-  <trigger
-   group="Epic_Not_Here"
-   keep_evaluating="y"
-   match="^$"
-   name="End_Group"
-   regexp="y"
-   send_to="12"
-   sequence="100"
-  >
-  <send>EnableTrigger("In_Room",false)
-Send("gt @Y" .. #epic_group_not_in_room .. " @CPlayer(s) Missing: @W" .. table.concat(epic_group_not_in_room, ", ") .. "$C")
-EnableTrigger("End_Group",false)</send>
-  </trigger>
   <trigger
    group="Epic_Not_Here"
    match="^$"
@@ -138,9 +100,15 @@ EnableTrigger("End_Area", true)</send>
    send_to="12"
    sequence="100"
   >
-  <send>EnableTrigger("Start_Group",true)
-Send("group")
-Send("echo ")</send>
+  <send>local group_not_here = {}
+    for _,v in iparis(epicgroup.members) do
+      if v.here == 0 then
+      table.insert(group_not_here, v.name)
+      end
+      end
+
+Send("gt @Y" .. #group_not_here .. " @CPlayer(s) Missing: @W" .. table.concat(group_not_here, ", ") .. "$C")
+</send>
   </alias>
   <alias
     match="^grupdate$"
