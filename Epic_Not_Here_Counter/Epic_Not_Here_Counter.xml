@@ -102,7 +102,7 @@ EnableTrigger("End_Area", true)</send>
   >
   <send>local group_not_here = {}
     for _,v in ipairs(epicgroup.members) do
-      if v.here == 0  and v.level > 199 then
+      if v.info.here == 0  and v.info.lvl > 199 then
       table.insert(group_not_here, v.name)
       end
       end
