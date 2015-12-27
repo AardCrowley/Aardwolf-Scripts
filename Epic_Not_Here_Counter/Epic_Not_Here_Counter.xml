@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2015-10-25 12:00:38"
    requires="4.00"
-   version="2.9"
+   version="3.0"
    >
 <description trim="y">
 <![CDATA[
@@ -101,16 +101,20 @@ EnableTrigger("End_Area", true)</send>
    sequence="100"
   >
   <send>local group_not_here = {}
-    require 'tprint'
-    tprint(epicgroup.members)
+    if SetCounterDebug == 1 then
+      require 'tprint'
+      tprint(epicgroup.members)
+    end
     for _,v in ipairs(epicgroup.members) do
       if tonumber(v.info.here) == 0 and tonumber(v.info.lvl) > 199 then
       table.insert(group_not_here, v.name)
-      print(v.name .. " " .. v.info.here .. " " .. v.info.lvl)
+      if SetCounterDebug == 1 then
+        print(v.name .. " " .. v.info.here .. " " .. v.info.lvl)
+      end
       end
       end
 
-Send("echo @Y" .. #group_not_here .. " @CPlayer(s) Missing: @W" .. table.concat(group_not_here, ", ") .. "$C")
+Send("gt @Y" .. #group_not_here .. " @CPlayer(s) Missing: @W" .. table.concat(group_not_here, ", ") .. "$C")
 </send>
   </alias>
   <alias
