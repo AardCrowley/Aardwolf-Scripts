@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2015-10-25 12:00:38"
    requires="4.00"
-   version="2.8"
+   version="2.81"
    >
 <description trim="y">
 <![CDATA[
@@ -104,7 +104,7 @@ EnableTrigger("End_Area", true)</send>
     require 'tprint'
     tprint(epicgroup.members)
     for _,v in ipairs(epicgroup.members) do
-      if v.info.here == 0 and v.info.lvl > 199 then
+      if tonumber(v.info.here) == 0 and tonumber(v.info.lvl) > 199 then
       table.insert(group_not_here, v.name)
       print(v.name .. " " .. v.info.here .. " " .. v.info.lvl)
       end
