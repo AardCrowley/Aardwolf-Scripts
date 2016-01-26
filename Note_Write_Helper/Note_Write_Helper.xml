@@ -120,39 +120,50 @@ end
 
 function noteeditor(str)
   local note, note_to, note_subj, note_to_send = false, false, false, false
+  
   if str == "new" then
     note_to = utils.inputbox("To whom are you writing the note?", "To list", "all")
+    
     if note_to then
       note_to_send = "note write " .. note_to
+      note_subj = utils.inputbox("What is the subject of your note?", "Subject")
+      
+      if not note_subj then
+        note_subj = ".q"
+        note_to_send = "echo Note cancelled!"
+      end -- end note_subj    
     else
-      note_to_send = "note write all"
-    end
-    note_subj = utils.inputbox("What is the subject of your note?", "Subject")
-    if not note_subj then
-      note_subj = ""
-    end
+      note_to_send = "echo Note cancelled!"
+    end -- end note_to
+
   elseif str == "reply" then
     note_to = utils.inputbox("To which note are you replying?", "Note number")
-    note_to_send = "note reply " .. note_to or ""
+    if note_to then
+      note_to_send = "note reply " .. note_to or ""
+    else
+      note_to_send = "echo Note cancelled!"
+    end -- end note_to
   end
 
   Send(note_to_send)
 
-  if note_subj then
-    Send(note_subj)
-  end
-
-  note = utils.editbox("Write your note.", "Note Writer Box")
-
-  if note then
-    Send(".c")
-    for line in note:gmatch("[^%c]+%c?") do 
-      Send(note_wrap(line))
-      Send(" ")
+  if note_to_send ~= "echo Note cancelled!" then
+    if note_subj then
+      Send(note_subj)
     end
-    Send(".s")
-  else
-    Send(".q")
+
+    note = utils.editbox("Write your note.", "Note Writer Box")
+
+    if note then
+      Send(".c")
+      for line in note:gmatch("[^%c]+%c?") do 
+        Send(note_wrap(line))
+        Send(" ")
+      end
+      Send(".s")
+    else
+      Send(".q")
+    end
   end
 end
 ]]>
