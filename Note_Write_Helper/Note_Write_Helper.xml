@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2015-08-16 08:56:28"
    requires="4.00"
-   version="1.0"
+   version="2.0"
    >
 <description trim="y">
 <![CDATA[
@@ -23,6 +23,7 @@ Instead of using the note formatter tool, or figuring out how long your line of 
 
 nw <text>           No indent character; takes a long line and formats linewraps it.
 nwi <char> <text>   Same as above, except it takes an indent character.
+nnw <reply|new>     Opens up an editor box so you can just type the whole note at once.
 
 ##Examples##
 
@@ -69,6 +70,17 @@ returns
   >
   <send>Send(note_wrap("%2", 79, "%1"))</send>
   </alias>
+
+  <alias
+    match="^nnw (new|reply)$"
+    enabled="y"
+    group="NoteHelper"
+    regexp="y"
+    send_to="12"
+    sequence="100"
+    >
+    <send>noteeditor("%1")</send>
+  </alias>
 </aliases>
 
 <!--  Script  -->
@@ -104,6 +116,37 @@ function note_wrap(str, limit, indent, indent1)
         return "\n"..indent..color_before_current_word..word
       end
     end)
+end
+
+function noteeditor(str)
+  local note, note_to, note_subj, note_to_send = false, false, false, false
+  if str == "new" then
+    note_to = utils.inputbox("To whom are you writing the note?", "To list", "all")
+    note_to_send = "note write " .. note_to
+    note_subj = utils.inputbox("What is the subject of your note?", "Subject")
+  elseif str == "reply" then
+    note_to = utils.inputbox("To which note are you replying?", "Note number")
+    note_to_send = "note reply " .. note_to or ""
+  end
+
+  Send(note_to_send)
+
+  if note_subj then
+    Send(note_subj)
+  end
+
+  note = utils.editbox("Write your note.", "Note Writer Box")
+
+  if note then
+    Send(".c")
+    for line in note:gmatch("[^%c]+%c?") do 
+      Send(note_wrap(line))
+      Send(" ")
+    end
+    Send(".s")
+  else
+    Send(".q")
+  end
 end
 ]]>
 </script>
