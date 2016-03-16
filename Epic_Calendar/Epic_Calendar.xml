@@ -66,7 +66,7 @@ function OnPluginInstall()
 	SetEpicDebug	= 0
 	just_today		= 0
 	not_found		= 0
-	update_only		= 1
+	update_only		= 0
 	PLUGIN_VERSION	= GetPluginInfo(GetPluginID(), 19)
 	PLUGIN_NAME		= GetPluginInfo(GetPluginID(), 1)
 
