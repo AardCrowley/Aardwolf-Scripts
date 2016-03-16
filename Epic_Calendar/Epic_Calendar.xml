@@ -14,8 +14,8 @@
    purpose="Future Epic events shown right in the MUD!"
    save_state="y"
    date_written="2015-10-26 12:43:55"
-   requires="4.00"
-   version="3.0"
+   requires="4.90"
+   version="3.1"
    >
 
 </plugin>
@@ -89,7 +89,7 @@ function update_plugin()
 	async_ok, async = pcall (require, "async")
 
 	if async_ok then
-		plugin_page = async_doAsyncRemoteRequest(raw, raw_get, "HTTPS")
+		plugin_page = async.doAsyncRemoteRequest(raw, raw_get, "HTTPS")
 	else
 		ColourNote("white", "blue", "Error on plugin update!")
 	end
