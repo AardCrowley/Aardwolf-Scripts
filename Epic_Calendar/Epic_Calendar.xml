@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2015-10-26 12:43:55"
    requires="4.00"
-   version="2.0"
+   version="3.0"
    >
 
 </plugin>
@@ -49,7 +49,7 @@
    sequence="100"
   >
   <send>if "%1" == "" then
-   ColourNote("cyan", "", "Epic Calendar Help: ", "white", "", "Type ", "green", "", "getcal &lt;", "darkcyan", "", "icefall", "green", "", "|", "darkcyan", "", "if", "green", "", "|", "red", "", "inferno", "green", "", "|", "blue", "", "oc", "green", "", "|", "white", "", "all", "green", "", "&gt;")
+   ColourNote("cyan", "", "Epic Calendar Help: ", "white", "", "Type ", "green", "", "getcal &lt;", "darkcyan", "", "icefall", "green", "", "|", "darkcyan", "", "if", "green", "", "|", "red", "", "inferno", "green", "", "|", "blue", "", "oc", "green", "", "|", "magenta", "", "genie", "green", "", "|", "white", "", "all", "green", "", "|", "yellow", "", "today", "green", "", "&gt;", "gray", "", "\\n'update' will attempt to update plugin!")
    else
    get_cal(string.gsub("%1"," ",""))
    end</send>
@@ -61,38 +61,103 @@
 
 <script>
 <![CDATA[
-function get_eastern_offset(time)
-	tzpage = "https://maps.googleapis.com/maps/api/timezone/json?location=28.4158,-81.2989&timestamp=" .. time .. "&key=AIzaSyBv_QnejlevQTnNxF3sF-j0NxzkDLOv4fY" -- Gets offset data for Eastern Time Zone
+function OnPluginInstall()
+	if not json then json = require 'json' end
+	SetEpicDebug	= 0
+	just_today		= 0
+	not_found		= 0
+	PLUGIN_VERSION	= GetPluginInfo(GetPluginID(), 19)
+	PLUGIN_NAME		= GetPluginInfo(GetPluginID(), 1)
+
+	get_eastern_offset(os.time())
+
+	epic_list = {
+		["icefall"] = "h8jf8vbgsl0in0nmg3vj06r9g4%40group.calendar.google.com",
+		["if"] = "h8jf8vbgsl0in0nmg3vj06r9g4%40group.calendar.google.com",
+		["inferno"] = "p8est01hkro1bol0bqfsvfm41o%40group.calendar.google.com",
+		["oc"] = "olvq8lncvoufh24b30ml9h2mio%40group.calendar.google.com",
+		["genie"] = "1a0r0briqqgei08o4tam13oi9g%40group.calendar.google.com",
+		["all"] = "shaelynne22%40gmail.com"
+	}
+end
+
+-- Update code --
+
+function update_plugin()
+	local raw = "https://raw.githubusercontent.com/Arcidayne/Aardwolf-Scripts/master/Epic_Calendar/Epic_Calendar.xml"
+
+	async_ok, async = pcall (require, "async")
 
 	if async_ok then
-		tzrpage = async.request(tzpage, "HTTPS")
+		plugin_page = async_doAsyncRemoteRequest(raw, raw_get, "HTTPS")
+	else
+		ColourNote("white", "blue", "Error on plugin update!")
+	end
+end
+
+function raw_get(retval, page, status, headers, full_status, request_url)
+	if status == 200 then
+		raw_version = tonumber(string.match(page, '%s%s+version="([0-9%.]_)"'))
 	end
 
-	retval, page, status, headers, full_status = tzrpage:join()
-	tzrpage = nil
+	if raw_version == PLUGIN_VERSION then
+		ColourNote("white", "blue", PLUGIN_NAME .. " is up-to-date.")
+	elseif raw_version > PLUGIN_VERSION then
+		ColourNote("white", "blue", "Updating from version " .. PLUGIN_VERSION .. " to " .. raw_version .. ". Do not touch anything!")
+		local file = io.open(GetPluginInfo(GetPluginID(), 6), "w")
+		file:write(page)
+		file:close()
+	end
 
+	raw_version = nil
+
+	if "" == GetAlphaOption("script_prefix") then
+		SetAlphaOption("script_prefix", "\\\\\\")
+	end
+
+	Execute(GetAlphaOption("script_prefix") .. "DoAfterSpecial(1, \"ReloadPlugin('" .. GetPluginID() .. "')\", sendto.script)")
+end -- end Update code
+
+-- Get current timezone and offset --
+
+function get_eastern_offset(time)
+	async_ok, async = pcall (require, "async")
+
+	tzpage = "https://maps.googleapis.com/maps/api/timezone/json?location=28.4158,-81.2989&timestamp=" .. time .. "&key=AIzaSyBv_QnejlevQTnNxF3sF-j0NxzkDLOv4fY"
+
+	if async_ok then
+		tzrpage = async.doAsyncRemoteRequest(tzpage, eastern_from_utc, "HTTPS")
+	end
+end
+
+function eastern_from_utc(retval, page, status, headers, full_status, request_url)
 	if status == 200 then
 		tzopage = json.decode(page)
 	end
 
-	local eastern_offset = tzopage.rawOffset+tzopage.dstOffset -- Adds the offset information together (includes Daylight Savings)
+	eastern_offset = tzopage.rawOffset+tzopage.dstOffset
 
-	return eastern_offset
-end
+	if tonumber(eastern_offset) < 0 then
+		local timeflip = string.format("%02d", (eastern_offset * -1)/3600)
+		hour_eastern_offset = "-" .. timeflip .. ":00"
+	else
+		hour_eastern_offset = eastern_offset/3600 .. ":00"
+	end
+end -- end current timezone and offset code
 
 function get_local_time(dateTime)
-	local xyear, xmonth, xday = string.match(dateTime, "(%d+)%-(%d+)%-(%d+)") -- Date format is displayed as yyyy-mm-dd
-	local xhour, xmin = string.match(dateTime, "%a(%d+):(%d+)") -- Time format is displayed as Thh:mm
+	local xyear, xmonth, xday = string.match(dateTime, "(%d+)%-(%d+)%-(%d+)")
+	local xhour, xmin = string.match(dateTime, "%a(%d+):(%d+)")
 
-	local event_time = os.time({year = xyear, month = xmonth, day = xday, hour = xhour or 23, min = xmin or 59, sec = 0}) -- Gets epoch time for event time
+	local event_time = os.time({year = xyear, month = xmonth, day = xday, hour = xhour or 23, min = xmin or 59, sec = 0})
 
-	local utc_event_time = event_time-get_eastern_offset(event_time) -- Sets UTC's time for the event
+	local utc_event_time = event_time - tonumber(eastern_offset)
 
-	local utctime, localtime = os.date("!*t", utc_event_time), os.date("*t", utc_event_time) -- Sets table data for events based on UTC's time of the event
+	local utctime, localtime = os.date("!*t", utc_event_time), os.date("*t", utc_event_time)
 	localtime.isdst = false
-	local localoffset = os.difftime(os.time(utctime), os.time(localtime)) -- Sets the time difference between UTC and local time at the time of the event UTC
+	local localoffset = os.difftime(os.time(utctime), os.time(localtime))
 
-	return os.date("%A, %B %d %Y at %I:%M%p", (utc_event_time-localoffset)) -- Should return local time of the event
+	return os.date("%A, %B %d %Y at %I:%M%p", (utc_event_time-localoffset))
 end
 
 function date_note(dateTime)
@@ -103,95 +168,98 @@ function date_note(dateTime)
 	end
 end
 
+-- Get calendar information functions
+
 function get_cal(epic)
 	async_ok, async = pcall (require, "async")
 
+	local key, calid = "AIzaSyAHEnr8iiK42hzM21pXSbTrBIQ2ezEEUHA", ""
+	epic_name = epic
 
-	local cal_output = {}
-	local epic_list, key, calid = "all if icefall inferno oc", "AIzaSyAHEnr8iiK42hzM21pXSbTrBIQ2ezEEUHA", ""
-	
-	if string.match(epic_list, epic:lower()) then
-		if epic:lower() == "icefall" or epic:lower() == "if" then
-			calid = "h8jf8vbgsl0in0nmg3vj06r9g4%40group.calendar.google.com"
-		elseif epic:lower() == "inferno" then
-			calid = "p8est01hkro1bol0bqfsvfm41o%40group.calendar.google.com"
-		elseif epic:lower() == "oc" then
-			calid = "olvq8lncvoufh24b30ml9h2mio%40group.calendar.google.com"
-		elseif epic:lower() == "all" then
-			calid = "shaelynne22%40gmail.com"
-		end
+	if epic_list[epic:lower()] then
+		calid = epic_list[epic:lower()]
+	elseif epic:lower() == "today" then
+		just_today = 1
+		timeMax = os.date("%Y-%m-%dT23:59:59") .. hour_eastern_offset
+		calid = epic_list.all
+	elseif epic:lower() == "update" then
+		update_plugin()
+	else
+		not_found = 1
+	end
 
-		local offset_utc, string_offset = os.difftime(os.time(os.date("*t")), os.time(os.date("!*t"))), ""
+	if not_found == 0 then
+		offset_utc, string_offset = os.difftime(os.time(os.date("*t")), os.time(os.date("!*t"))), ""
 
 		if offset_utc < 0 then
-			string_offset = "-" .. string.format("%02d",(offset_utc*-1)/3600) .. ":00"
+			string_offset = "-" .. string.format("%02d", (offset_utc*-1)/3600) .. ":00"
 		else
 			string_offset = "%2b" .. string.format("%02d", math.floor(offset_utc/3600)) .. ":00"
 		end
 
-		local timeMin = os.date("%Y-%m-%dT%H:%M:%S", os.time()) .. string_offset
+		timeMin = os.date("%Y-%m-%dT%H:%M:%S", os.time()) .. string_offset
 
-		rpage = "https://www.googleapis.com/calendar/v3/calendars/" .. calid .. "/events?key=" .. key .. "&timeMin=" .. timeMin
+		if just_today == 1 then
+			rpage = "https://www.googleapis.com/calendar/v3/calendars/" .. calid .. "/events?key=" .. key .. "&timeMin=" .. timeMin .. "&timeMax=" .. timeMax
+			just_today = 0
+		else
+			rpage = "https://www.googleapis.com/calendar/v3/calendars/" .. calid .. "/events?key=" .. key .. "&timeMin=" .. timeMin
+		end
 
 		if async_ok then
-			epage = async.request(rpage, "HTTPS")
+			epage = async.doAsyncRemoteRequest(rpage, get_results, "HTTPS")
 		else
-			ColourNote("async_ok check failed!")
-		end
-
-		retval, page, status, headers, full_status = epage:join()
-		epage = nil
-
-		if status == 200 then
-			epage = json.decode(page)
-		else
-			print(status .. ": Status failed!")
-		end
-
-		if SetEpicDebug == 1 then
-			ColourNote("cyan", "", "Debugging information:\n", "white", "", "rpage: " .. rpage .. "\nstring_offset: " .. string_offset .. "\noffset_utc: " .. offset_utc .. "\ntimeMin: " .. timeMin, "cyan", "", "\nEnd of information\n")
-		end
-
-		if epage then
-			if epage.items[1] then
-				for i = 1, #epage.items do
-					starttime, summary = "", epage.items[i].summary or "No summary found!"
-
-					if epage.items[i].start.date then
-						starttime = epage.items[i].start.date
-					else
-						starttime = epage.items[i].start.dateTime
-					end
-
-					if #summary < 22 then
-						summary = summary .. string.rep(" ", 22-#summary) .. "- "
-					end
-					table.insert(cal_output, summary .. get_local_time(starttime) .. date_note(starttime))
-				end
-			end
-		else
-			ColourNote("cyan", "", "Epic Calendar Error! Something went very wrong trying to get the epage. Let Arcidayne know!")
-		end
-
-		local header_string = " Upcoming Runs (Local time) "
-
-		if cal_output[1] then
-			ColourNote("white", "", string.rep("=", 18), "cyan", "", header_string, "white", "", string.rep("=", 18) .. "\n\n", "green", "", table.concat(cal_output, "\n"), "white", "", "\n\n" .. string.rep("=", 64))
-		else
-			ColourNote("white", "", string.rep("=", 18), "cyan", "", header_string, "white", "", string.rep("=", 18) .. "\n\n", "green", "", "No upcoming runs for " .. epic .. "!", "white", "", "\n\n" .. string.rep("=", 64))
+			ColourNote("white", "blue", "Epic Calendar Error: Please try again. If problem persists, please contact Arcidayne.")
 		end
 	else
-		ColourNote("cyan", "", "Epic Calendar Error: ", "white", "", "Valid choices are: IF/Icefall, Inferno, OC, All)")
+		ColourNote("cyan", "", "Epic Calendar Error: ", "white", "", "Valid choices are: IF/Icefall, Inferno, OC, Genie, All, Today")
+		epage, starttime, summary, not_found = nil, nil, nil, 0
 	end
-	epage, starttime, summary, cal_output = nil, nil, nil, nil
 end
 
-function OnPluginInstall()
-	if not json then json = require 'json' end
-	async_ok, async = pcall (require, "async")
-	SetEpicDebug = 0
-end
+function get_results(retval, page, status, headers, full_status, request_url)
 
+	local cal_output = {}
+
+	if status == 200 then
+		epage = json.decode(page)
+	else
+		ColourNote("white", "blue", "Epic Calendar Error: Status failed with code: " .. status .. ". Please try again. If problem persists, please contact Arcidayne.")
+	end
+
+	if SetEpicDebug == 1 then
+		ColourNote("cyan", "", "Debugging information:\n", "white", "", "rpage: " .. rpage .. "\nstring_offset: " .. string_offset .. "\noffset_utc: " .. offset_utc .. "\ntimeMin: " .. timeMin, "cyan", "", "\nEnd of information\n")
+	end
+
+	if epage then
+		if epage.items[1] then
+			for i = 1, #epage.items do
+				starttime, summary = "", epage.items[i].summary or "No summary found!"
+
+				if epage.items[i].start.date then
+					starttime = epage.items[i].start.date
+				else
+					starttime = epage.items[i].start.dateTime
+				end
+
+				if #summary < 22 then
+					summary = summary .. string.rep(" ", 22-#summary) .. "- "
+				end
+				table.insert(cal_output, summary .. get_local_time(starttime) .. date_note(starttime))
+			end
+		end
+	else
+		ColourNote("cyan", "", "Epic Calendar Error: Something went very wrong trying to get the epage. Let Arcidayne know!")
+	end
+
+	local header_string = " Upcoming Runs (Local time) "
+
+	if cal_output[1] then
+		ColourNote("white", "", string.rep("=", 18), "cyan", "", header_string, "white", "", string.rep("=", 18) .. "\n\n", "green", "", table.concat(cal_output, "\n"), "white", "", "\n\n" .. string.rep("=", 64))
+	else
+    	ColourNote("white", "", string.rep("=", 18), "cyan", "", header_string, "white", "", string.rep("=", 18) .. "\n\n", "green", "", "No upcoming runs for " .. epic_name .. "!", "white", "", "\n\n" .. string.rep("=", 64))
+  	end
+end
 ]]>
 </script>
 
