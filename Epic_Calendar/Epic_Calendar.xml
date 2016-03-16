@@ -7,7 +7,7 @@
 
 <muclient>
 <plugin
-   name="Epic_CalendarV2"
+   name="Epic_CalendarV3"
    author="Arcidayne"
    id="365b29d0ecd49b468c0c00f5"
    language="Lua"
