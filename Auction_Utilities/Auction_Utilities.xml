@@ -62,8 +62,8 @@ EnableTrigger("CurrentBid", false)</send>
    sequence="100"
   >
   <send>for i,v in pairs(TriggerStyleRuns) do
-&#9;if v.text == "%1" then
-&#9;&#9;Hyperlink("lbid %1", "%1", "", "white", "", 0)
+&#9;if v.text:gsub(" ", "") == "%1" then
+&#9;&#9;Hyperlink("lbid %1", v.text, "", "white", "", 0)
 &#9;else
 &#9;&#9;ColourTell (RGBColourToName (v.textcolour),
   RGBColourToName (v.backcolour),
