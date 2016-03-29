@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="1.2"
+   version="1.3"
    >
 <description trim="y">
 <![CDATA[
@@ -30,6 +30,8 @@ safe bid 123 3.5m
 which will then send 'bid 123 3500000'
 
 aucutils update -- This will update the plugin if there are new versions available.
+
+aucutils buyout <on|off> -- Turns on/off clickable buyouts.
 
 Any questions, send a tell or personal note to Arcidayne!
 ]]>
@@ -168,7 +170,8 @@ ColourNote("white", "", "%1 ", "cyan", "", date_end, "white", "", string.rep(" "
    send_to="14"
    sequence="100"
   >
-  <send>local bop = string.gsub("%1", ",", "")
+  <send>if BUYOUT_OPTION == 1 then
+    local bop = string.gsub("%1", ",", "")
 local hlink = "lbid " .. marketbidn .. " " .. bop
 
 for i,v in pairs(TriggerStyleRuns) do
@@ -181,7 +184,8 @@ for i,v in pairs(TriggerStyleRuns) do
   v.text)
 &#9;end
 end
-Note ("")</send>
+Note ("")
+end</send>
   </trigger>
 </triggers>
 
@@ -212,6 +216,17 @@ Send("%1 " .. amount .. "%4")</send>
    sequence="100"
   >
   </alias>
+  <alias
+   match="^aucutils buyout (on|off)$"
+   enabled="y"
+   group="Auction_Market"
+   regexp="y"
+   send_to="12"
+   sequence="100"
+  >
+  <send>if "%1" == "on" then BUYOUT_OPTION = 1 else BUYOUT_OPTION = 0 end
+    ColourNote("white", "blue", "Turning %1 clickable buyouts!")</send>
+  </alias>
 </aliases>
 
 <!--  Script  -->
@@ -222,6 +237,7 @@ Send("%1 " .. amount .. "%4")</send>
 function OnPluginInstall()
 	PLUGIN_VERSION	= GetPluginInfo(GetPluginID(), 19)
 	PLUGIN_NAME		= GetPluginInfo(GetPluginID(), 1)
+  BUYOUT_OPTION = 1
 end
 
 function update_plugin()
