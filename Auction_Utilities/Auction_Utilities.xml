@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="1.6"
+   version="1.7"
    >
 <description trim="y">
 <![CDATA[
@@ -92,7 +92,7 @@ EnableTrigger("CurrentBid", true)</send>
    enabled="y"
    group="Auction_Market"
    keep_evaluating="y"
-   match="(?:(Market|Auction|Remort Auction)): \w+ (?:is auctioning|is selling|of).*(?:(?:Level \d+, )?Num (\d+)\))\.?(?: Auction is for .*\.| Current bid is \d+\.)?"
+   match="^(?:(Market|Auction|Remort Auction)): \w+ (?:is auctioning|is selling|of).*(?:(?:Level \d+, )?Num (\d+)\))\.?(?: Auction is for .*\.| Current bid is \d+\.)?"
    omit_from_output="y"
    regexp="y"
    send_to="14"
