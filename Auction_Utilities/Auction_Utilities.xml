@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.2"
+   version="2.3"
    >
 <description trim="y">
 <![CDATA[
@@ -67,7 +67,7 @@ EnableTrigger("CurrentBid", false)</send>
 if v.text:gsub(" ", "") == "%1" then
   local st, sl, spl = string.find(v.text, "[^%s]"), string.len(v.text), string.len("%1")
   local ls, ts = string.rep(" ", st-1), ""
-  if (spl+ls:len()) &lt; sl then
+  if (spl+string.len(ls)) &lt; sl then
     ts = string.rep(" ", sl-(spl+ls))
   end
   ColourTell(RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), ls)
