@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.5"
+   version="2.51"
    >
 <description trim="y">
 <![CDATA[
@@ -362,7 +362,7 @@ function SetUpHotspotsAndDraw(firstTime)
       height,
       windowinfo.window_mode,
       windowinfo.window_flags,
-      background_colour))
+      background_colour or 0))
 
     movewindow.add_drag_handler (win, 0, 0, 0, 0)
 
@@ -593,7 +593,7 @@ function OnPluginInstall()
 
 
    -- make window so I can grab the font info
-   WindowCreate (win, 1, 1, width, height, 0, 0, background_colour) 
+   WindowCreate (win, 1, 1, width, height, 0, 0, background_colour or 0) 
 
    font_id        = "lbid_font"
    font_id_bold   = "lbid_bold"
