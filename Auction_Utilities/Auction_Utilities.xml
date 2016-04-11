@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.48"
+   version="2.49"
    >
 <description trim="y">
 <![CDATA[
@@ -363,7 +363,7 @@ function raw_get(retval, page, status, headers, full_status, request_url)
   end
 
   Execute(GetAlphaOption("script_prefix") .. "DoAfterSpecial(1, \"ReloadPlugin('" .. GetPluginID() .. "')\", sendto.script)")
-  ColourNote("Update complete!")
+  ColourNote("white", "blue", "Update complete!")
 end -- end Update code
 
 ]]>
