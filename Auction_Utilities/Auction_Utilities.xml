@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.41"
+   version="2.42"
    >
 <description trim="y">
 <![CDATA[
@@ -243,10 +243,6 @@ Send("%1 " .. amount .. "%4")</send>
 
 <script>
 <![CDATA[
-function OnPluginInstall()
-	PLUGIN_VERSION	= GetPluginInfo(GetPluginID(), 19)
-	PLUGIN_NAME		= GetPluginInfo(GetPluginID(), 1)
-  BUYOUT_OPTION = 1
   require "movewindow"
   require "mw"
   require "gmcphelper"
@@ -275,7 +271,12 @@ function OnPluginInstall()
   posy             = ""
   hotspot_id       = ""
   page_built       = false
-  end
+
+function OnPluginInstall()
+	PLUGIN_VERSION	= GetPluginInfo(GetPluginID(), 19)
+	PLUGIN_NAME		= GetPluginInfo(GetPluginID(), 1)
+  BUYOUT_OPTION = 1
+end
 
 function update_plugin()
 	raw = "https://raw.githubusercontent.com/Arcidayne/Aardwolf-Scripts/master/Auction_Utilities/Auction_Utilities.xml"
