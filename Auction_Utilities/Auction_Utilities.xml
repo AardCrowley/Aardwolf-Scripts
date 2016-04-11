@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.4"
+   version="2.41"
    >
 <description trim="y">
 <![CDATA[
@@ -71,7 +71,8 @@ if v.text:gsub(" ", "") == "%1" then
     ts = string.rep(" ", sl-(spl+ls))
   end
   ColourTell(RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), ls)
-  Hyperlink("lbid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+  Hyperlink("!!381ff501f4f32c86cc30ad4c:lbid_capture(%1)", "%1", "lbid %1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+  --Hyperlink("lbid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
   ColourTell(RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), ts)
 else
   ColourTell (RGBColourToName (v.textcolour),
@@ -110,7 +111,8 @@ if "%1" == "Market" then bida = "lbid" elseif "%1" == "Remort Auction" then bida
 
 for i,v in pairs(TriggerStyleRuns) do
     if v.text:gsub(" ", "") == "%2" then
-        Hyperlink(bida .. " %2", v.text, "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+        Hyperlink("!!381ff501f4f32c86cc30ad4c:" .. bida .. "_capture(%1)", "%1", bida .. "%1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+        --Hyperlink(bida .. " %2", v.text, "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
     else
         ColourTell (RGBColourToName (v.textcolour),
   RGBColourToName (v.backcolour),
@@ -130,7 +132,8 @@ Note ("")</send>
   >
   <send>for i,v in pairs(TriggerStyleRuns) do
     if v.text == "%1" then
-        Hyperlink("bid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+          Hyperlink("!!381ff501f4f32c86cc30ad4c:bid_capture(%1)", "%1", "bid %1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+        --Hyperlink("bid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
     else
         ColourTell (RGBColourToName (v.textcolour),
   RGBColourToName (v.backcolour),
@@ -244,7 +247,35 @@ function OnPluginInstall()
 	PLUGIN_VERSION	= GetPluginInfo(GetPluginID(), 19)
 	PLUGIN_NAME		= GetPluginInfo(GetPluginID(), 1)
   BUYOUT_OPTION = 1
-end
+  require "movewindow"
+  require "mw"
+  require "gmcphelper"
+
+  background_colour     = GetNormalColour(1)
+  title_colour          = 0x292929
+  border_color          = 0xdddddd
+  title_gradient_col1   = GetNormalColour(1)
+  title_gradient_col2   = 0x444444
+  default_width         = 500
+  default_height        = 250
+  default_x             = 658
+  default_y             = 100
+  lbid_lines = {}
+
+
+  --title_colour          = 0xf92929
+  RESIZE_TAG_SIZE = 10
+  MIN_SIZE        = 100
+  TITLE_HEIGHT    = 11
+
+  -- Variables not saved.
+  startx           = ""  
+  starty           = ""
+  posx             = "" 
+  posy             = ""
+  hotspot_id       = ""
+  page_built       = false
+  end
 
 function update_plugin()
 	raw = "https://raw.githubusercontent.com/Arcidayne/Aardwolf-Scripts/master/Auction_Utilities/Auction_Utilities.xml"
@@ -280,6 +311,412 @@ function raw_get(retval, page, status, headers, full_status, request_url)
 
 	Execute(GetAlphaOption("script_prefix") .. "DoAfterSpecial(1, \"ReloadPlugin('" .. GetPluginID() .. "')\", sendto.script)")
 end -- end Update code
+
+function lbid_capture(wildcards)
+  if state ~= 3 then 
+    Send("echo LBID_START") 
+    Send("lbid " .. wildcards)
+    Send("echo LBID_END")
+  end
+end
+
+function rbid_capture(wildcards)
+  if state ~= 3 then 
+    Send("echo LBID_START") 
+    Send("rbid " .. wildcards)
+    Send("echo LBID_END")
+  end
+end
+
+function bid_capture(wildcards)
+  if state ~= 3 then 
+    Send("echo LBID_START") 
+    Send("bid " .. wildcards)
+    Send("echo LBID_END")
+  end
+end
+
+
+function lbid_redirect (name, line, wildcards, styles)
+   EnableTrigger ("multi_line_lbid", true)  -- capture subsequent lines
+   EnableTrigger ("lbid_end", true)  -- capture ending lines
+   if name == "lbid_start" then   --- Setup the window.
+      line_count = 1
+      lbid_lines = {} --reset ready for new lbid listing
+   elseif name == "lbid_end" then
+      table.insert (lbid_lines, styles)
+      EnableTrigger ("multi_line_lbid", false)  -- no more lines to go
+      page_built = true
+      DisplayLbidPage () --end of lbid output from MUD, display the window
+   else
+      table.insert (lbid_lines, styles)
+      if also_echo_lbid == 1 then
+         line_count = line_count + 1
+         if line_count == 4 then
+            SetTriggerOption ("multi_line_lbid", "omit_from_output", "n")
+         elseif line_count == 20 then
+            SetTriggerOption ("multi_line_lbid", "omit_from_output", "y")
+         end
+      end
+   end
+end -- function lbid_redirect
+
+function SetUpHotspotsAndDraw(firstTime)
+   if (firstTime == true) then
+      check (WindowCreate (win, 
+         windowinfo.window_left, windowinfo.window_top,   -- left, top (auto-positions)
+         width,   -- width
+         height,  -- height
+         windowinfo.window_mode,       -- auto-position: middle right
+         windowinfo.window_flags,  -- flags
+         background_colour) )
+      -- Add the drag handler so they can move the window around
+      movewindow.add_drag_handler (win, 0, 0, 0, 0)
+
+      -- Add handler for resizing
+      WindowAddHotspot(win, "resize", width-RESIZE_TAG_SIZE, height-RESIZE_TAG_SIZE, width, height, "MouseOver", "CancelMouseOver", "MouseDown", "", "MouseUp", "", 6, 0)
+      WindowDragHandler(win, "resize", "ResizeMoveCallback", "ResizeReleaseCallback", 0)
+      CallPlugin("462b665ecb569efbf261422f", "registerMiniwindow", win) -- fail silently
+   else
+      -- everything has already been made
+      -- just move them back into place
+      WindowResize(win, width, height, background_colour)
+      WindowMoveHotspot(win, "legend", 5, height-font_height-2, 3*font_width, height)
+      WindowMoveHotspot(win, "resize", width-RESIZE_TAG_SIZE, height-RESIZE_TAG_SIZE, width, height)
+   end
+   DisplayLbidPage()
+end
+
+--=================================================================================
+-- Called by OnPluginInstall, but also by redraw routine to refresh the screen
+-- and (if the first time) add the resizer tag, otherwise move the resizer relative
+-- to the main window.
+--=================================================================================
+
+function DisplayLbidPage()
+    
+   styles = { }
+   
+   WindowRectOp(win, 2, 2,2,-2,-2,background_colour) -- blank
+   
+   -- title rectangle
+   WindowGradient (win, 2, 2, -2, font_height*2+TITLE_HEIGHT, title_gradient_col1, title_gradient_col2, 2)
+   WindowLine(win,0,font_height*2 + TITLE_HEIGHT,width,font_height*2+TITLE_HEIGHT,0xeeeeee,0,1)
+
+   if not page_built then
+      txt = "Lbid(rbid/bid) output will appear here"
+      txtlen = WindowTextWidth(win,font_id,txt)
+      WindowText (win, font_id, txt, (width-txtlen)/2, height/2, 0, 0, 0xeeeeee, utf8)
+      txt = "once you click a hyperlink."
+      txtlen = WindowTextWidth(win,font_id,txt)
+      WindowText (win, font_id, txt, (width-txtlen)/2, height/2+font_height, 0, 0, 0xeeeeee, utf8)
+   else        
+      -- display each line        
+      imax = 0
+      for i, v in ipairs (lbid_lines) do
+         Display_Line (i, v)
+         imax = i
+      end -- for
+                
+   end
+
+   -- draw edge frame.
+   WindowRectOp (win, 1, 0, 0, 0, 0, border_color, 15)
+   WindowRectOp (win, 1, 1, 1, -1, -1, 0x777777, 15)
+
+   -- draw the resize widget bottom right corner.
+   WindowLine(win, width-3, height-2, width-2, height-3, 0xffffff, 0, 2)
+   WindowLine(win, width-4, height-2, width-2, height-4, 0x696969, 0, 1)
+   WindowLine(win, width-6, height-2, width-2, height-6, 0xffffff, 0, 2)
+   WindowLine(win, width-7, height-2, width-2, height-7, 0x696969, 0, 1)
+   WindowLine(win, width-9, height-2, width-2, height-9, 0xffffff, 0, 2)
+   WindowLine(win, width-10, height-2, width-2, height-10, 0x696969, 0, 1)
+   WindowLine(win, width-12, height-2, width-2, height-12, 0xffffff, 0, 2)
+   WindowLine(win, width-13, height-2, width-2, height-13, 0x696969, 0, 1)
+
+   -- show it now (or refresh)
+   WindowShow (win, true)
+   --Redraw()
+   BroadcastPlugin (999, "repaint")
+                 
+end -- Display_Lbid
+
+
+function Display_Line (line, styles)
+   local id = font_id
+
+   local left = 10
+   local top =  (line - 1) * font_height + 20
+
+   for _, v in ipairs (styles) do
+      left = left + WindowText (win, id, v.text,
+               left, top, 0, 0, v.textcolour)
+   end -- for each style run                 
+end -- Display_Line
+
+-- right click menu
+function right_click_menu ()
+
+   menustring ="Change Font"
+
+   menustring = (menustring .."|-|Bring To Front|Send To Back|-|"..(((also_echo_lbid == 1) and "+") or "").."Echo Lbid output In Main Output|Reset Defaults")
+
+   result = WindowMenu (win,
+      WindowInfo (win, 14),  -- x position
+      WindowInfo (win, 15),   -- y position
+      menustring) -- content
+
+   if result == "Change Font" then
+      wanted_font = utils.fontpicker (font_name, font_size) --font dialog
+      if wanted_font then
+         font_name = wanted_font.name
+         font_size = wanted_font.size
+         -- save and reload
+         OnPluginSaveState()
+         OnPluginInstall()
+      end
+   elseif result == "Bring To Front" then
+      CallPlugin("462b665ecb569efbf261422f","boostMe", win)
+   elseif result == "Send To Back" then
+      CallPlugin("462b665ecb569efbf261422f","dropMe", win)
+   elseif result == "Echo Lbid(rbid/bid) output In Main Output" then
+      also_echo_lbid = (((also_echo_lbid == 0) and 1) or 0)
+   elseif result == "Reset Defaults" then
+      font_name = default_font_name
+      font_size = default_font_size
+      height = default_height
+      width = default_width
+      also_echo_lbid = 0
+      -- save and reload
+      OnPluginSaveState()
+      OnPluginInstall()
+   end -- if
+
+end -- right_click_menu
+
+---------------------------------------------------------------------------------
+-- Just used to ensure we can send commands (only send "lbid/rbid/bid" when state = 3)
+---------------------------------------------------------------------------------
+function OnPluginBroadcast(msg, id, name, text)
+   -- Look for GMCP handler.
+   if (id == '3e7dedbe37e44942dd46d264') then
+      if text == "char.status" then -- only watch for char.status.state change
+         res, gmcparg = CallPlugin("3e7dedbe37e44942dd46d264","gmcpval","char.status") -- get the char.status values
+         luastmt = "gmcpdata = " .. gmcparg --- Convert the serialized string back into a lua table.
+
+         assert (loadstring (luastmt or "")) ()
+
+         state = gmcpdata.state
+      end
+   end
+end -- onpluginbroadcast
+
+
+---------------------------------------------------------------------------------
+-- Called as the window is dragged around. This function and those below are
+-- only 'handlers' because they are set in WindowAddHotSpot
+---------------------------------------------------------------------------------
+function ResizeMoveCallback()
+   if GetPluginVariable("c293f9e7f04dde889f65cb90", "lock_down_miniwindows") == "1" then
+      return
+   end
+   posx, posy = WindowInfo (win, 17), WindowInfo (win, 18)
+   width = width + posx - startx
+   startx = posx
+   if (width < MIN_SIZE) then
+      width = MIN_SIZE
+      startx = windowinfo.window_left+width
+   elseif (windowinfo.window_left+width > GetInfo(281)) then
+      width = GetInfo(281)-windowinfo.window_left
+      startx = GetInfo(281)
+   end 
+
+   height = height + posy - starty
+   starty = posy
+   if (height < MIN_SIZE) then
+      height = MIN_SIZE
+      starty = windowinfo.window_top+height
+   elseif (windowinfo.window_top+height > GetInfo(280)) then
+      height = GetInfo(280)-windowinfo.window_top
+      starty = GetInfo(280)
+   end
+   if (utils.timer() - lastRefresh > 0.0333) then
+      SetUpHotspotsAndDraw(false)
+      lastRefresh = utils.timer()
+   end
+end
+
+lastRefresh = 0
+
+---------------------------------------------------------------------------------
+-- Called after the resize widget is released.
+---------------------------------------------------------------------------------
+function ResizeReleaseCallback()
+   SetUpHotspotsAndDraw(true)
+end
+
+---------------------------------------------------------------------------------
+-- Called when mouse button is pressed on hotspot.
+---------------------------------------------------------------------------------
+function MouseDown(flags, hotspot_id)
+   if (hotspot_id == "resize") then
+      startx, starty = WindowInfo (win, 17), WindowInfo (win, 18)
+   end
+end
+
+---------------------------------------------------------------------------------
+-- Called when mouse moved away from hotspot. Doesn't really apply for draggables.
+---------------------------------------------------------------------------------
+function CancelMouseDown(flags, hotspot_id)
+end
+
+---------------------------------------------------------------------------------
+-- Called when mouse button released on hotspot.
+---------------------------------------------------------------------------------
+function MouseUp(flags, hotspot_id, win)
+   if bit.band (flags, miniwin.hotspot_got_rh_mouse) ~= 0 then
+      right_click_menu()
+   end
+   return true
+end
+
+function LeftClickOnly(flags, hotspot_id, win)
+   if bit.band (flags, miniwin.hotspot_got_rh_mouse) ~= 0 then
+      return true
+   end
+   return false
+end
+
+function OnPluginConnect()
+  Send_GMCP_Packet("request char")
+end
+
+---------------------------------------------------------------------------------
+-- Called when plugin is saved - store our variables for next time.
+---------------------------------------------------------------------------------
+function OnPluginSaveState ()
+   movewindow.save_state (win)   -- save window current location for next time  
+   SetVariable ("enabled", tostring (GetPluginInfo (GetPluginID (), 17)))
+   SetVariable ("title_colour", title_colour)  
+   SetVariable ("width", width)
+   SetVariable ("height", height)
+   SetVariable ("font_name", font_name)
+   SetVariable ("font_size", font_size)
+   SetVariable ("also_echo_lbid", also_echo_lbid)
+
+end -- OnPluginSaveState
+
+function OnPluginClose ()
+   OnPluginDisable()
+   WindowDelete(win)
+end
+
+function OnPluginDisable ()
+   WindowShow( win, false )
+   OnPluginSaveState()
+end --  OnPluginDisable
+
+function OnPluginEnable ()
+   WindowShow (win, true)
+   if IsConnected() then
+      OnPluginConnect()
+   end
+   OnPluginSaveState()
+end -- OnPluginEnable
+
+win = GetPluginID()
+require "checkplugin"
+function OnPluginListChanged ()
+   do_plugin_check_now ("abc1a0944ae4af7586ce88dc", "aard_repaint_buffer") -- check we have the repaint buffer plugin
+   do_plugin_check_now ("3e7dedbe37e44942dd46d264", "aard_GMCP_handler")    -- check we have GMCP plugin
+   do_plugin_check_now ("462b665ecb569efbf261422f", "aard_miniwindow_z_order_monitor") -- check we have z order plugin
+end -- OnPluginListChanged
+
+function OnPluginInstall()
+   --- Pull some state variables.
+   title_colour = tonumber (GetVariable ("title_colour")) or title_colour
+   height = tonumber (GetVariable ("height")) or default_height
+   width = tonumber (GetVariable ("width")) or default_width
+   also_echo_lbid = tonumber (GetVariable("also_echo_lbid")) or 0
+
+
+   -- make window so I can grab the font info
+   WindowCreate (win, 1, 1, width, height, 0, 0, background_colour) 
+
+   font_id        = "lbid_font"
+   font_id_bold   = "lbid_bold"
+
+   local fonts = utils.getfontfamilies ()
+
+   -- if not there already, add it
+   if not fonts.Dina then
+      AddFont (GetInfo (66) .. "\\Dina.fon")
+      fonts = utils.getfontfamilies ()
+   end -- if Dina not installed
+
+   if fonts ["Dina"] then
+      default_font_size = 8
+      default_font_name = "Dina"    -- the actual font
+   elseif fonts["Courier New"] then
+      default_font_size = 9
+      default_font_name = "Courier New"
+   else
+      default_font_size = 9
+      default_font_name = "Lucida Console"
+   end -- if
+
+   font_name = GetVariable("font_name") or default_font_name
+   font_size = tonumber(GetVariable("font_size")) or default_font_size
+
+   --- Load the fonts into the temp window.
+   WindowFont (win, font_id, font_name, font_size, false, false, false, false) -- normal font
+   WindowFont (win, font_id_bold, font_name, font_size+1, false, false, false, false) -- bold font
+
+   --- Grab font size settings.
+   font_height = WindowFontInfo (win, font_id, 1) -  WindowFontInfo (win, font_id, 4) + 1 -- height
+   font_width  = WindowFontInfo (win, font_id, 6)  -- avg width
+   line_height = font_height + 1
+
+   --- install the window movement handler, get back the window position.
+   windowinfo  = movewindow.install (win, miniwin.pos_top_right, miniwin.create_absolute_location, false, nil, {mouseup=MouseUp, mousedown=LeftClickOnly, dragmove=LeftClickOnly, dragrelease=LeftClickOnly},{x=default_x, y=default_y})
+
+   -- Draw the initial lbid window
+   SetUpHotspotsAndDraw(true)
+
+   -- Info (Legend) window
+  
+   -- our window frame/background colours
+   border_colour = ColourNameToRGB "dimgray"
+  
+   -- a unique ID
+   infowin = "~~~~~~"..GetPluginID () .. ":info" -- name hack to make the popup go on top of everything
+
+   -- font IDs
+   popup_font_id = "popup_font"  
+   heading_font_id = "popup_heading_font"  
+ 
+   -- load fonts - mouseover window
+   WindowCreate (infowin, 0, 0, 1, 1, 0, 0, 0)   -- make 1-pixel wide window
+   WindowSetZOrder(infowin, 99999)
+   
+   -- install the fonts  (49 is modern / fixed pitch)
+   WindowFont (infowin, popup_font_id, font_name, font_size, false, false, false, false, 0, 49) 
+   WindowFont (infowin, heading_font_id, font_name, font_size + 2, false, false, false, false, 0, 49)
+   
+   -- update on reload
+   if IsConnected() then
+      OnPluginConnect()
+   end
+   
+   -- if disabled last time, stay disabled
+   if GetVariable ("enabled") == "false" then
+      ColourNote ("yellow", "", "Warning: Plugin " .. GetPluginName ().. " is currently disabled.")
+      check (EnablePlugin(GetPluginID (), false))
+      return
+   end -- they didn't enable us last time
+
+end
+
 
 ]]>
 </script>
