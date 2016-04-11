@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="1.7"
+   version="2.0"
    >
 <description trim="y">
 <![CDATA[
@@ -57,20 +57,27 @@ EnableTrigger("CurrentBid", false)</send>
    enabled="y"
    group="Auction_Market"
    keep_evaluating="y"
-   match="^\s+?(\d+)\s+.*?\s+\d+\s+.*?\s+[\d,]+\s+\d+\s+.*?$"
+   match="^\s+?\*?(\d+)\s+.*?\s+\d+\s+.*?\s+[\d,]\*?+\s+\d+\s+.*?$"
    omit_from_output="y"
    regexp="y"
    send_to="14"
    sequence="100"
   >
   <send>for i,v in pairs(TriggerStyleRuns) do
-&#9;if v.text:gsub(" ", "") == "%1" then
-&#9;&#9;Hyperlink("lbid %1", v.text, "", "white", "", 0)
-&#9;else
-&#9;&#9;ColourTell (RGBColourToName (v.textcolour),
+if v.text:gsub(" ", "") == "%1" then
+  local st, sl, spl = string.find(v.text, "[^%s]"), string.len(v.text), string.len("%1")
+  local ls, ts = string.rep(" ", st-1), ""
+  if (spl+ls) < sl then
+    ts = string.rep(" ", sl-(spl+ls))
+  end
+  ColourTell(RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), ls)
+  Hyperlink("lbid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+  ColourTell(RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), ts)
+else
+  ColourTell (RGBColourToName (v.textcolour),
   RGBColourToName (v.backcolour),
   v.text)
-&#9;end
+    end
 end
 Note ("")</send>
   </trigger>
@@ -92,7 +99,7 @@ EnableTrigger("CurrentBid", true)</send>
    enabled="y"
    group="Auction_Market"
    keep_evaluating="y"
-   match="^(?:(Market|Auction|Remort Auction)): \w+ (?:is auctioning|is selling|of).*(?:(?:Level \d+, )?Num (\d+)\))\.?(?: Auction is for .*\.| Current bid is \d+\.)?"
+   match="^(?:\{chan ch=.*\})?(?:(Market|Auction|Remort Auction)): \w+ (?:is auctioning|is selling|of).*(?:(?:Level \d+, )?Num (\d+)\))\.?(?: Auction is for .*\.| Current bid is \d+\.)?"
    omit_from_output="y"
    regexp="y"
    send_to="14"
@@ -102,13 +109,13 @@ EnableTrigger("CurrentBid", true)</send>
 if "%1" == "Market" then bida = "lbid" elseif "%1" == "Remort Auction" then bida = "rbid" end
 
 for i,v in pairs(TriggerStyleRuns) do
-&#9;if v.text:gsub(" ", "") == "%2" then
-&#9;&#9;Hyperlink(bida .. " %2", v.text, "", "yellow", "", 0)
-&#9;else
-&#9;&#9;ColourTell (RGBColourToName (v.textcolour),
+    if v.text:gsub(" ", "") == "%2" then
+        Hyperlink(bida .. " %2", v.text, "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+    else
+        ColourTell (RGBColourToName (v.textcolour),
   RGBColourToName (v.backcolour),
   v.text)
-&#9;end
+    end
 end
 Note ("")</send>
   </trigger>
@@ -122,13 +129,13 @@ Note ("")</send>
    sequence="100"
   >
   <send>for i,v in pairs(TriggerStyleRuns) do
-&#9;if v.text == "%1" then
-&#9;&#9;Hyperlink("bid %1", "%1", "", "red", "", 0)
-&#9;else
-&#9;&#9;ColourTell (RGBColourToName (v.textcolour),
+    if v.text == "%1" then
+        Hyperlink("bid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+    else
+        ColourTell (RGBColourToName (v.textcolour),
   RGBColourToName (v.backcolour),
   v.text)
-&#9;end
+    end
 end
 Note ("")</send>
   </trigger>
@@ -142,13 +149,13 @@ Note ("")</send>
    sequence="100"
   >
   <send>function get_date(days, hours, minutes, seconds)
-&#9;daysec &#9;&#9;= days*86400
-&#9;hoursec &#9;= hours*3600
-&#9;minsec &#9;&#9;= minutes*60
+    daysec         = days*86400
+    hoursec     = hours*3600
+    minsec         = minutes*60
 
-&#9;totalsecs = daysec+hoursec+minsec+seconds
+    totalsecs = daysec+hoursec+minsec+seconds
 
-&#9;return os.date('(%H:%M %b %d)', os.time()+totalsecs)
+    return os.date('(%H:%M %b %d)', os.time()+totalsecs)
 end
 
 local aucd, auch, aucm, aucs = 0, 0, tonumber("%4"), tonumber("%5")
@@ -175,14 +182,14 @@ ColourNote("white", "", "%1 ", "cyan", "", date_end, "white", "", string.rep(" "
 local hlink = "lbid " .. marketbidn .. " " .. bop
 
 for i,v in pairs(TriggerStyleRuns) do
-&#9;if v.text:gsub(" ", "") == "%1" and BUYOUT_OPTION == 1 then
-&#9;&#9;Hyperlink(hlink, "%1", "", "yellow", "", 0)
+    if v.text:gsub(" ", "") == "%1" and BUYOUT_OPTION == 1 then
+        Hyperlink(hlink, "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
                 ColourTell("", "", string.rep(" ", v.text:len() - string.len("%1")))
-&#9;else
-&#9;&#9;ColourTell (RGBColourToName (v.textcolour),
+    else
+        ColourTell (RGBColourToName (v.textcolour),
   RGBColourToName (v.backcolour),
   v.text)
-&#9;end
+    end
 end
 Note ("")</send>
   </trigger>
