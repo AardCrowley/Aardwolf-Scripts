@@ -747,6 +747,7 @@ function raw_get(retval, page, status, headers, full_status, request_url)
   end
 
   Execute(GetAlphaOption("script_prefix") .. "DoAfterSpecial(1, \"ReloadPlugin('" .. GetPluginID() .. "')\", sendto.script)")
+  ColourNote("Update complete!")
 end -- end Update code
 
 ]]>
