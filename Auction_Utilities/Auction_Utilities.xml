@@ -67,7 +67,7 @@ EnableTrigger("CurrentBid", false)</send>
 if v.text:gsub(" ", "") == "%1" then
   local st, sl, spl = string.find(v.text, "[^%s]"), string.len(v.text), string.len("%1")
   local ls, ts = string.rep(" ", st-1), ""
-  if (spl+ls) < sl then
+  if (spl+ls) &lt; sl then
     ts = string.rep(" ", sl-(spl+ls))
   end
   ColourTell(RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), ls)
