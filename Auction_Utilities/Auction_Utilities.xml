@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.46"
+   version="2.47"
    >
 <description trim="y">
 <![CDATA[
@@ -621,6 +621,33 @@ end -- OnPluginListChanged
 
 function OnPluginInstall()
    --- Pull some state variables.
+
+   require "movewindow"
+  require "mw"
+  require "gmcphelper"
+
+  background_colour     = GetNormalColour(1) or 0
+  title_colour          = 0x292929
+  border_colour         = 0xdddddd
+  title_gradient_col1   = GetNormalColour(1) or 0
+  title_gradient_col1   = 0x444444
+  default_width         = 500
+  default_height        = 250
+  default_x             = 658
+  default_y             = 100
+  lbid_lines            = {}
+
+  RESIZE_TAG_SIZE       = 10
+  MIN_SIZE              = 100
+  TITLE_HEIGHT          = 11
+
+  startx                = ""
+  starty                = ""
+  posx                  = ""
+  posy                  = ""
+  hotspot_id            = ""
+  page_built            = false
+
    title_colour = tonumber (GetVariable ("title_colour")) or title_colour
    height = tonumber (GetVariable ("height")) or default_height
    width = tonumber (GetVariable ("width")) or default_width
