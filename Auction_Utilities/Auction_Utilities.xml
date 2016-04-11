@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.44"
+   version="2.45"
    >
 <description trim="y">
 <![CDATA[
@@ -71,8 +71,10 @@ if v.text:gsub(" ", "") == "%1" then
     ts = string.rep(" ", sl-(spl+ls))
   end
   ColourTell(RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), ls)
-  --Hyperlink("!!381ff501f4f32c86cc30ad4c:lbid_capture(%1)", "%1", "lbid %1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
-  Hyperlink("lbid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+  Hyperlink("!!381ff501f4f32c86cc30ad4c:lbid_capture(%1)", "%1", "lbid %1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+  
+  --Hyperlink("lbid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+  
   ColourTell(RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), ts)
 else
   ColourTell (RGBColourToName (v.textcolour),
@@ -111,8 +113,10 @@ if "%1" == "Market" then bida = "lbid" elseif "%1" == "Remort Auction" then bida
 
 for i,v in pairs(TriggerStyleRuns) do
     if v.text:gsub(" ", "") == "%2" then
-        --Hyperlink("!!381ff501f4f32c86cc30ad4c:" .. bida .. "_capture(%1)", "%1", bida .. "%1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
-        Hyperlink(bida .. " %2", v.text, "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+        Hyperlink("!!381ff501f4f32c86cc30ad4c:" .. bida .. "_capture(%1)", "%1", bida .. "%1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+  
+        --Hyperlink(bida .. " %2", v.text, "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+  
     else
         ColourTell (RGBColourToName (v.textcolour),
   RGBColourToName (v.backcolour),
@@ -132,8 +136,9 @@ Note ("")</send>
   >
   <send>for i,v in pairs(TriggerStyleRuns) do
     if v.text == "%1" then
-        --  Hyperlink("!!381ff501f4f32c86cc30ad4c:bid_capture(%1)", "%1", "bid %1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
-        Hyperlink("bid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+        Hyperlink("!!381ff501f4f32c86cc30ad4c:bid_capture(%1)", "%1", "bid %1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+  
+        --Hyperlink("bid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
     else
         ColourTell (RGBColourToName (v.textcolour),
   RGBColourToName (v.backcolour),
@@ -178,7 +183,7 @@ ColourNote("white", "", "%1 ", "cyan", "", date_end, "white", "", string.rep(" "
    omit_from_output="y"
    regexp="y"
    send_to="14"
-   sequence="100"
+   sequence="5"
   >
   <send>
     local bop = string.gsub("%1", ",", "")
@@ -294,6 +299,30 @@ Send("%1 " .. amount .. "%4")</send>
   posy                  = ""
   hotspot_id            = ""
   page_built            = false
+
+function lbid_capture(wildcards)
+  if state ~= 3 then 
+    Send("echo {lbid}") 
+    Send("lbid " .. wildcards)
+    Send("echo {/lbid}")
+  end
+end
+
+function rbid_capture(wildcards)
+  if state ~= 3 then 
+    Send("echo {lbid}") 
+    Send("rbid " .. wildcards)
+    Send("echo {/lbid}")
+  end
+end
+
+function bid_capture(wildcards)
+  if state ~= 3 then 
+    Send("echo {lbid}") 
+    Send("bid " .. wildcards)
+    Send("echo {/lbid}")
+  end
+end
 
   function lbid_redirect (name, line, wildcards, styles)
    EnableTrigger ("multi_line_lbid", true)  -- capture subsequent lines
