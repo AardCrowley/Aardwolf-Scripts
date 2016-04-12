@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.53"
+   version="2.54"
    >
 <description trim="y">
 <![CDATA[
@@ -71,9 +71,9 @@ if v.text:gsub(" ", "") == "%1" then
     ts = string.rep(" ", sl-(spl+ls))
   end
   ColourTell(RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), ls)
-  Hyperlink("!!381ff501f4f32c86cc30ad4c:lbid_capture(%1)", "%1", "lbid %1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+  --Hyperlink("!!381ff501f4f32c86cc30ad4c:lbid_capture(%1)", "%1", "lbid %1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
   
-  --Hyperlink("lbid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+  Hyperlink("lbid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
   
   ColourTell(RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), ts)
 else
@@ -113,9 +113,9 @@ if "%1" == "Market" then bida = "lbid" elseif "%1" == "Remort Auction" then bida
 
 for i,v in pairs(TriggerStyleRuns) do
     if v.text:gsub(" ", "") == "%2" then
-        Hyperlink("!!381ff501f4f32c86cc30ad4c:" .. bida .. "_capture(%1)", "%1", bida .. "%1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+        --Hyperlink("!!381ff501f4f32c86cc30ad4c:" .. bida .. "_capture(%1)", "%1", bida .. "%1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
   
-        --Hyperlink(bida .. " %2", v.text, "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+        Hyperlink(bida .. " %2", v.text, "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
   
     else
         ColourTell (RGBColourToName (v.textcolour),
@@ -136,9 +136,9 @@ Note ("")</send>
   >
   <send>for i,v in pairs(TriggerStyleRuns) do
     if v.text == "%1" then
-        Hyperlink("!!381ff501f4f32c86cc30ad4c:bid_capture(%1)", "%1", "bid %1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+        --Hyperlink("!!381ff501f4f32c86cc30ad4c:bid_capture(%1)", "%1", "bid %1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
   
-        --Hyperlink("bid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+        Hyperlink("bid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
     else
         ColourTell (RGBColourToName (v.textcolour),
   RGBColourToName (v.backcolour),
