@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.6"
+   version="2.61"
    >
 <description trim="y">
 <![CDATA[
@@ -476,10 +476,18 @@ end
 function mouseup (flags, hotspot_id)
   if hotspot_id == "bid" then
     bid_amount = utils.inputbox("How much would you like to bid?", "Safe bid enabled! (1k, 1.5m, etc)", "")
-    Execute("safe " .. bid_action .. " " .. marketbidn .. " " .. bid_amount .. " confirm")
+    if bid_amount then
+      Execute("safe " .. bid_action .. " " .. marketbidn .. " " .. bid_amount .. " confirm")
+    else
+      ColourNote("white", "blue", bid_action .. " cancelled!")
+    end
   elseif hotspot_id == "proxy" then
     proxy_amount = utils.inputbox("How much would you like you to proxy bid?", "Safe bid enabled! (1k, 1.5m, etc)", "")
-    Execute("safe lbid " .. marketbidn .. " " .. proxy_amount .. " proxy confirm")
+    if proxy_amount then
+      Execute("safe lbid " .. marketbidn .. " " .. proxy_amount .. " proxy confirm")
+    else
+      ColourNote("white", "blue", "Proxy bid cancelled!")
+    end
   elseif hotspot_id == "buyout" then
     Send("lbid " .. marketbidn .. " " .. bop)
   elseif hotspot_id == "close" then
