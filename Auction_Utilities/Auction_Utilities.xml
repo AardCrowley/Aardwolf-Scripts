@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.62"
+   version="2.63"
    >
 <description trim="y">
 <![CDATA[
@@ -251,16 +251,22 @@ Send("%1 " .. amount .. "%4")</send>
   >
   </alias>
   <alias
-   match="^aucutils buyout (on|off)$"
+   match="^aucutils buyout (confirm)?\s?(on|off)$"
    enabled="y"
    group="Auction_Market"
    regexp="y"
    send_to="12"
    sequence="100"
   >
-  <send>if "%1" == "on" then BUYOUT_OPTION = 1 else BUYOUT_OPTION = 0 end
-    ColourNote("white", "blue", "Turning %1 clickable buyouts!")
-    SetVariable("buyoutoption", BUYOUT_OPTION)</send>
+  <send>if "%1" == "confirm" then
+      if "%2" == "on" then BUYOUT_CONFIRM = 1 else BUYOUT_CONFIRM = 0 end
+      ColourNote("white", "blue", "Buyout confirmed now turned %2!")
+      else
+      if "%2" == "on" then BUYOUT_OPTION = 1 else BUYOUT_OPTION = 0 end
+    ColourNote("white", "blue", "Turning %2 clickable buyouts!")
+    end
+    SetVariable("buyoutoption", BUYOUT_OPTION)
+    SetVariable("buyoutconfirm", BUYOUT_CONFIRM)</send>
   </alias>
 </aliases>
 
@@ -273,6 +279,7 @@ function OnPluginInstall()
   PLUGIN_VERSION  = GetPluginInfo(GetPluginID(), 19)
   PLUGIN_NAME   = GetPluginInfo(GetPluginID(), 1)
   BUYOUT_OPTION = GetVariable("buyoutoption") or 1
+  BUYOUT_CONFIRM = GetVariable("buyoutconfirm") or 1
   
   require "movewindow"
   require "mw"
@@ -490,7 +497,15 @@ function mouseup (flags, hotspot_id)
       ColourNote("white", "blue", "Proxy bid cancelled!")
     end
   elseif hotspot_id == "buyout" then
-    Send("lbid " .. marketbidn .. " " .. bop)
+    if BUYOUT_CONFIRM == 1 then
+      if utils.msgbox("Confirm buyout for " .. bop .. "?", "Question", "yesno", "?") == "yes" then
+        Send("lbid " .. marketbidn .. " " .. bop)
+      else
+        ColourNote("Buyout cancelled!")
+      end
+    else
+      Send("lbid " .. marketbidn .. " " .. bop)
+    end
   elseif hotspot_id == "close" then
     movewindow.save_state (win)
     WindowShow(win, false)
