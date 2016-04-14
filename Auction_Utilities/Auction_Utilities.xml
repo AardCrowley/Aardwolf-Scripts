@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.54"
+   version="2.55"
    >
 <description trim="y">
 <![CDATA[
@@ -71,9 +71,9 @@ if v.text:gsub(" ", "") == "%1" then
     ts = string.rep(" ", sl-(spl+ls))
   end
   ColourTell(RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), ls)
-  --Hyperlink("!!381ff501f4f32c86cc30ad4c:lbid_capture(%1)", "%1", "lbid %1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+  Hyperlink("!!381ff501f4f32c86cc30ad4c:lbid_capture(%1)", "%1", "lbid %1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
   
-  Hyperlink("lbid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+  --Hyperlink("lbid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
   
   ColourTell(RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), ts)
 else
@@ -93,8 +93,7 @@ Note ("")</send>
    send_to="12"
    sequence="100"
   >
-  <send>marketbidn, bop = nil, nil
-marketbidn = "%1"
+  <send>marketbidn = "%1"
 EnableTrigger("BuyoutLink", true)
 EnableTrigger("CurrentBid", true)</send>
   </trigger>
@@ -110,12 +109,13 @@ EnableTrigger("CurrentBid", true)</send>
   >
   <send>local bida = "bid"
 if "%1" == "Market" then bida = "lbid" elseif "%1" == "Remort Auction" then bida = "rbid" end
+marketbidn = "%2"
 
 for i,v in pairs(TriggerStyleRuns) do
     if v.text:gsub(" ", "") == "%2" then
-        --Hyperlink("!!381ff501f4f32c86cc30ad4c:" .. bida .. "_capture(%1)", "%1", bida .. "%1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+        Hyperlink("!!381ff501f4f32c86cc30ad4c:" .. bida .. "_capture(%2)", "%2", bida .. "%2", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
   
-        Hyperlink(bida .. " %2", v.text, "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+        --Hyperlink(bida .. " %2", v.text, "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
   
     else
         ColourTell (RGBColourToName (v.textcolour),
@@ -134,11 +134,13 @@ Note ("")</send>
    send_to="14"
    sequence="100"
   >
-  <send>for i,v in pairs(TriggerStyleRuns) do
+  <send>marketbidn = "%1"
+
+    for i,v in pairs(TriggerStyleRuns) do
     if v.text == "%1" then
-        --Hyperlink("!!381ff501f4f32c86cc30ad4c:bid_capture(%1)", "%1", "bid %1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+        Hyperlink("!!381ff501f4f32c86cc30ad4c:bid_capture(%1)", "%1", "bid %1", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
   
-        Hyperlink("bid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
+        --Hyperlink("bid %1", "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
     else
         ColourTell (RGBColourToName (v.textcolour),
   RGBColourToName (v.backcolour),
@@ -156,24 +158,14 @@ Note ("")</send>
    send_to="12"
    sequence="100"
   >
-  <send>function get_date(days, hours, minutes, seconds)
-    daysec         = days*86400
-    hoursec     = hours*3600
-    minsec         = minutes*60
-
-    totalsecs = daysec+hoursec+minsec+seconds
-
-    return os.date('(%H:%M %b %d)', os.time()+totalsecs)
-end
-
-local aucd, auch, aucm, aucs = 0, 0, tonumber("%4"), tonumber("%5")
+  <send>local aucd, auch, aucm, aucs = 0, 0, tonumber("%4"), tonumber("%5")
 
 if "%2" ~= "" then aucd = tonumber("%2") end
 if "%3" ~= "" then auch = tonumber("%3") end
 
-local date_end = get_date(aucd, auch, aucm, aucs)
+date_end = get_date(aucd, auch, aucm, aucs)
 
-ColourNote("white", "", "%1 ", "cyan", "", date_end, "white", "", string.rep(" ", string.len("%6")-string.len(date_end)-1) .. "|")
+--ColourNote("white", "", "%1 ", "cyan", "", date_end, "white", "", string.rep(" ", string.len("%6")-string.len(date_end)-1) .. "|")
 </send>
   </trigger>
   <trigger
@@ -181,15 +173,16 @@ ColourNote("white", "", "%1 ", "cyan", "", date_end, "white", "", string.rep(" "
    match="^\| Buyout Price\s+:\s+([\d,]+)\s+\|$"
    name="BuyoutLink"
    omit_from_output="y"
+   enabled="n"
    regexp="y"
    send_to="14"
-   sequence="5"
+   sequence="100"
   >
   <send>
-    local bop = string.gsub("%1", ",", "")
+    bop = string.gsub("%1", ",", "")
 local hlink = "lbid " .. marketbidn .. " " .. bop
 
-for i,v in pairs(TriggerStyleRuns) do
+--[[for i,v in pairs(TriggerStyleRuns) do
     if v.text:gsub(" ", "") == "%1" and BUYOUT_OPTION == 1 then
         Hyperlink(hlink, "%1", "", RGBColourToName(v.textcolour), RGBColourToName(v.backcolour), 0)
                 ColourTell("", "", string.rep(" ", v.text:len() - string.len("%1")))
@@ -199,15 +192,42 @@ for i,v in pairs(TriggerStyleRuns) do
   v.text)
     end
 end
-Note ("")</send>
+Note ("")]]--</send>
   </trigger>
+  <trigger
+    match="\{bid\}"
+    name="bid_start"
+    script="bid_redirect"
+    omit_from_output="y"
+    enabled="n"
+    regexp="y"
+    sequence="100"
+    ></trigger>
+  <trigger
+    match="*"
+    name="bid_line_output"
+    script="bid_redirect"
+    omit_from_output="y"
+    keep_evaluating="y"
+    enabled="n"
+    sequence="10"
+    ></trigger>
+  <trigger
+    match="\{/bid\}"
+    name="bid_end"
+    script="bid_redirect"
+    regexp="y"
+    enabled="n"
+    omit_from_output="y"
+    sequence="5"
+    ></trigger>
 </triggers>
 
 <!--  Aliases  -->
 
 <aliases>
   <alias
-   match="^safe (.*) ([\d\.]+)(k|K|m|M|b|B)(.*)?"
+   match="^safe (.*) ([\d\.]+)(k|K|m|M|b|B)?(.*)?"
    enabled="y"
    group="Auction_Market"
    regexp="y"
@@ -255,29 +275,44 @@ function OnPluginInstall()
   
   require "movewindow"
   require "mw"
-  require "gmcphelper"
+  require 'tprint'
 
-  background_colour         = GetNormalColour(1) or 0
-  title_colour              = 0x292929
-  border_colour             = 0xdddddd
-  title_gradient_col1       = GetNormalColour(1) or 0
-  title_gradient_col2       = 0x444444
-  default_width             = 500
-  default_height            = 250
-  default_x                 = 658
-  default_y                 = 100
-  lbid_lines                = {}
+  -- Window initialization
 
-  RESIZE_TAG_SIZE           = 10
-  MIN_SIZE                  = 100
-  TITLE_HEIGHT              = 11
+  win = "Auction_Utilities_" .. GetPluginID()
+  font_size = 8
 
-  startx                    = ""
-  starty                    = ""
-  posx                      = ""
-  posy                      = ""
-  hotspot_id                = ""
-  page_built                = false
+  wininfo = movewindow.install(win, miniwin.pos_center_right, 0)
+
+  local font_families = utils.getfontfamilies()
+
+  if font_families["Dina"] then
+    font_name = "Dina"
+  elseif font_families["Lucida Sans Console"] then
+    font_name = "Lucida Sans Console"
+    font_size = 10
+  else
+    font_name = "Consolas"
+    font_size = 10
+  end
+
+  WindowCreate(win, wininfo.window_left, wininfo.window_top, 0, 0, miniwin.pos_center_right, wininfo.window_flags, 0)
+  WindowFont(win, "f1", font_name, font_size, false, false, false, false)
+  WindowFont(win, "f2", "Consolas", 12, true, false, false, false)
+  
+  max_width         = WindowTextWidth(win, "f1", "+-----------------------------------------------------------------+") + 10
+  font_height       = WindowFontInfo(win, "f1", 1)
+  button_height     = WindowFontInfo(win, "f2", 1) + 10
+  bidbuttonWidth    = WindowTextWidth(win, "f2", "Bid") + 30
+  proxybuttonx      = bidbuttonWidth + 1
+  proxybuttonWidth  = proxybuttonx + WindowTextWidth(win, "f2", "Proxy bid") + 30
+  buyoutbuttonx     = proxybuttonWidth + 1
+  buyoutbuttonWidth = buyoutbuttonx + WindowTextWidth(win, "f2", "Buyout") + 30
+  datetextx         = buyoutbuttonWidth + 5
+  closebuttonx      = max_width - 25
+
+
+  -- End Window Initialization
 end
 
 function update_plugin()
@@ -315,6 +350,147 @@ function raw_get(retval, page, status, headers, full_status, request_url)
   Execute(GetAlphaOption("script_prefix") .. "DoAfterSpecial(1, \"ReloadPlugin('" .. GetPluginID() .. "')\", sendto.script)")
   ColourNote("white", "blue", "Update complete!")
 end -- end Update code
+
+function lbid_capture(bidnum)
+  bid_action = "lbid"
+  EnableTrigger("bid_start", true)
+  Send("echo {bid}")
+  Send("lbid " .. bidnum)
+  Send("echo {/bid}")
+end
+
+function bid_capture(bidnum)
+  bid_action = "bid"
+  EnableTrigger("bid_start", true)
+  Send("echo {bid}")
+  Send("bid " .. bidnum)
+  Send("echo {/bid}")
+end
+
+function rbid_capture(bidnum)
+  bid_action = "rbid"
+  EnableTrigger("bid_start", true)
+  Send("echo {bid}")
+  Send("rbid " .. bidnum)
+  Send("echo {/bid}")
+end
+
+function bid_redirect(name, line, wildcards, styles)
+  EnableTrigger("bid_line_output", true)
+  EnableTrigger("bid_end", true)
+  if name == "bid_start" then
+    bid_lines = {}
+    bop, date_end = nil, nil
+    EnableTrigger("bid_start", false)
+  elseif name == "bid_end" then
+    EnableTrigger("bid_line_output", false)
+    EnableTrigger("bid_end", false)
+    DrawWindow()
+  elseif name == "bid_line_output" then
+    if styles[1] then
+      if string.match(styles[1].text, "^[%|%+]") then
+        table.insert(bid_lines, styles)
+      end
+    end
+  end
+end
+
+function get_date(days, hours, minutes, seconds)
+    daysec         = days*86400
+    hoursec        = hours*3600
+    minsec         = minutes*60
+    totalsecs      = daysec+hoursec+minsec+seconds
+
+    return os.date('%I:%M%p %b %d', os.time()+totalsecs)
+end
+
+function DrawWindow()
+  WindowCreate(win, wininfo.window_left, wininfo.window_top, max_width, font_height * #bid_lines + (button_height + 3), miniwin.pos_center_right, miniwin.create_absolute_location+miniwin.create_keep_hotspots, ColourNameToRGB("black"))
+  WindowRectOp(win, miniwin.rect_draw_edge, 0, 0, max_width, font_height * #bid_lines + (button_height + 3), miniwin.rect_edge_raised, miniwin.rect_edge_at_all)
+
+  -- Buttons
+  WindowRectOp(win, miniwin.rect_draw_edge, 0, 0, bidbuttonWidth, button_height, miniwin.rect_edge_raised, miniwin.rect_edge_at_all)
+  WindowAddHotspot(win, "bid", 0, 0, bidbuttonWidth, button_height + 10, "mouseover", "cancelmouseover", "mousedown", "cancelmousedown", "mouseup", "Bid on item", miniwin.cursor_hand, 0)
+  WindowText(win, "f2", "Bid", 15, 5, 0, 0, ColourNameToRGB("darkgreen"), false)
+
+  if bid_action == "lbid" then
+    WindowRectOp(win, miniwin.rect_draw_edge, proxybuttonx, 0, proxybuttonWidth, button_height, miniwin.rect_edge_raised, miniwin.rect_edge_at_all)
+    WindowAddHotspot(win, "proxy", proxybuttonx, 0, proxybuttonWidth, button_height, "mouseover", "cancelmouseover", "mousedown", "cancelmousedown", "mouseup", "Place proxy bid", miniwin.cursor_hand, 0)
+    WindowText(win, "f2", "Proxy bid", proxybuttonx + 15, 5, 0, 0, ColourNameToRGB("yellow"), false)
+    
+    if bop then
+      WindowRectOp(win, miniwin.rect_draw_edge, buyoutbuttonx, 0, buyoutbuttonWidth, button_height, miniwin.rect_edge_raised, miniwin.rect_edge_at_all)
+      WindowAddHotspot(win, "buyout", buyoutbuttonx, 0, buyoutbuttonWidth, button_height, "mouseover", "cancelmouseover", "mousedown", "cancelmousedown", "mouseup", "Buyout item", miniwin.cursor_hand, 0)
+      WindowText(win, "f2", "Buyout", buyoutbuttonx + 15, 5, 0, 0, ColourNameToRGB("white"), false)
+    end
+  end
+
+  if date_end then
+    WindowText(win, "f2", "Ends " .. date_end, datetextx, 5, 0, 0, ColourNameToRGB("cyan"), false)
+  end
+
+  WindowAddHotspot(win, "close", closebuttonx, 0, max_width, button_height, "mouseover", "cancelmouseover", "mousedown", "cancelmousedown", "mouseup", "Close window", miniwin.cursor_hand, 0)
+  WindowText(win, "f2", "X", max_width - 15, 5, 0, 0, ColourNameToRGB("red"), false)
+
+  WindowLine(win, 0, button_height + 1, max_width, button_height + 1, ColourNameToRGB("gray"), miniwin.pen_solid, 2)
+
+  local y = button_height + 3
+
+  for i, styles in ipairs(bid_lines) do
+
+      if styles[1] then
+          local x = 5
+          for _,style in ipairs(styles) do
+            x = x + WindowText(win, "f1", style.text, x, y, 0, 0, style.textcolour)
+          end
+      y = y + font_height
+      end
+    end
+
+  movewindow.add_drag_handler(win, 0, button_height + 3, 0, 0, miniwin.cursor_both_arrow)
+
+  WindowSetZOrder(win, 999)
+
+  movewindow.save_state (win)
+
+  WindowShow(win, true)
+end
+
+function mouseover()
+  return
+end
+
+function cancelmouseover()
+  return
+end
+
+function mousedown ()
+  return
+end
+
+function cancelmousedown()
+  return
+end
+
+function mouseup (flags, hotspot_id)
+  if hotspot_id == "bid" then
+    bid_amount = utils.inputbox("How much would you like to bid?", "Safe bid enabled! (1k, 1.5m, etc)", "")
+    Execute("safe " .. bid_action .. " " .. marketbidn .. " " .. bid_amount .. " confirm")
+  elseif hotspot_id == "proxy" then
+    proxy_amount = utils.inputbox("How much would you like you to proxy bid?", "Safe bid enabled! (1k, 1.5m, etc)", "")
+    Execute("safe lbid " .. marketbidn .. " " .. proxy_amount .. " proxy confirm")
+  elseif hotspot_id == "buyout" then
+    Send("lbid " .. marketbidn .. " " .. bop)
+  elseif hotspot_id == "close" then
+    movewindow.save_state (win)
+    WindowShow(win, false)
+  end
+end
+
+function OnPluginSaveState()
+  movewindow.save_state (win)
+end
+
 ]]>
 </script>
 
