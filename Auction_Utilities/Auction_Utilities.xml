@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.64"
+   version="2.65"
    >
 <description trim="y">
 <![CDATA[
@@ -266,7 +266,8 @@ Send("%1 " .. amount .. "%4")</send>
     ColourNote("white", "blue", "Turning %2 clickable buyouts!")
     end
     SetVariable("buyoutoption", BUYOUT_OPTION)
-    SetVariable("buyoutconfirm", BUYOUT_CONFIRM)</send>
+    SetVariable("buyoutconfirm", BUYOUT_CONFIRM)
+    Save()</send>
   </alias>
 </aliases>
 
