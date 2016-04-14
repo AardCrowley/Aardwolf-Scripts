@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.63"
+   version="2.64"
    >
 <description trim="y">
 <![CDATA[
@@ -501,7 +501,7 @@ function mouseup (flags, hotspot_id)
       if utils.msgbox("Confirm buyout for " .. bop .. "?", "Question", "yesno", "?") == "yes" then
         Send("lbid " .. marketbidn .. " " .. bop)
       else
-        ColourNote("Buyout cancelled!")
+        ColourNote("white", "blue", "Buyout cancelled!")
       end
     else
       Send("lbid " .. marketbidn .. " " .. bop)
