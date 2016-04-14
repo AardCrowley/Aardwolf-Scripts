@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.57"
+   version="2.58"
    >
 <description trim="y">
 <![CDATA[
@@ -419,7 +419,7 @@ function DrawWindow()
     WindowAddHotspot(win, "proxy", proxybuttonx, 0, proxybuttonWidth, button_height, "mouseover", "cancelmouseover", "mousedown", "cancelmousedown", "mouseup", "Place proxy bid", miniwin.cursor_hand, 0)
     WindowText(win, "f2", "Proxy bid", proxybuttonx + 15, 5, 0, 0, ColourNameToRGB("yellow"), false)
     
-    if bop then
+    if bop AND BUYOUT_OPTION == 1 then
       WindowRectOp(win, miniwin.rect_draw_edge, buyoutbuttonx, 0, buyoutbuttonWidth, button_height, miniwin.rect_edge_raised, miniwin.rect_edge_at_all)
       WindowAddHotspot(win, "buyout", buyoutbuttonx, 0, buyoutbuttonWidth, button_height, "mouseover", "cancelmouseover", "mousedown", "cancelmousedown", "mouseup", "Buyout item", miniwin.cursor_hand, 0)
       WindowText(win, "f2", "Buyout", buyoutbuttonx + 15, 5, 0, 0, ColourNameToRGB("white"), false)
