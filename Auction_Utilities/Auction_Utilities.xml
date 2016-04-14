@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.61"
+   version="2.62"
    >
 <description trim="y">
 <![CDATA[
@@ -428,6 +428,7 @@ function DrawWindow()
 
   if date_end then
     WindowText(win, "f2", "Ends " .. date_end, datetextx, 5, 0, 0, ColourNameToRGB("cyan"), false)
+    WindowAddHotspot(win, "end_date", datetextx, 0, max_width - 25, button_height, "mouseover", "cancelmouseover", "mousedown", "cancelmousedown", "mouseup", "Copy End date", miniwin.cursor_hand, 0)
   end
 
   WindowAddHotspot(win, "close", closebuttonx, 0, max_width, button_height, "mouseover", "cancelmouseover", "mousedown", "cancelmousedown", "mouseup", "Close window", miniwin.cursor_hand, 0)
@@ -493,6 +494,8 @@ function mouseup (flags, hotspot_id)
   elseif hotspot_id == "close" then
     movewindow.save_state (win)
     WindowShow(win, false)
+  elseif hotspot_id == "end_date" then
+    SetClipboard(date_end)
   end
 end
 
