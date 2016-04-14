@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2016-03-29 14:40:46"
    requires="4.80"
-   version="2.55"
+   version="2.56"
    >
 <description trim="y">
 <![CDATA[
@@ -259,7 +259,8 @@ Send("%1 " .. amount .. "%4")</send>
    sequence="100"
   >
   <send>if "%1" == "on" then BUYOUT_OPTION = 1 else BUYOUT_OPTION = 0 end
-    ColourNote("white", "blue", "Turning %1 clickable buyouts!")</send>
+    ColourNote("white", "blue", "Turning %1 clickable buyouts!")
+    SetVariable("buyoutoption", BUYOUT_OPTION)</send>
   </alias>
 </aliases>
 
@@ -271,7 +272,7 @@ Send("%1 " .. amount .. "%4")</send>
 function OnPluginInstall()
   PLUGIN_VERSION  = GetPluginInfo(GetPluginID(), 19)
   PLUGIN_NAME   = GetPluginInfo(GetPluginID(), 1)
-  BUYOUT_OPTION = 1
+  BUYOUT_OPTION = GetVariable("buyoutoption") or 1
   
   require "movewindow"
   require "mw"
