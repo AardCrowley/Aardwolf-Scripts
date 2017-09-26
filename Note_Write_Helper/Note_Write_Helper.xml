@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2015-08-16 08:56:28"
    requires="4.00"
-   version="2.0"
+   version="2.1"
    >
 <description trim="y">
 <![CDATA[
@@ -40,6 +40,8 @@ returns
 
 >This is a long line of text that would be formatted to break at 79 characters with 
 >respect to the word boundaries.
+
+As a side note, in order to post blank lines, you will need to use @w for each blank line. I may or may not fix it in the future.
 
 ]]>
 </description>
@@ -89,52 +91,94 @@ returns
 <script>
 <![CDATA[
 function note_wrap(str, limit, indent, indent1)
-  indent = indent or ""
-  indent1 = indent1 or indent
-  limit = limit or 79
-  local here = 1-#indent1
-  local last_color = ''
-  return indent1..str:gsub("(%s+)()(%S+)()",
-    function(sp, st, word, fi)
-      local delta = 0
-      local color_before_current_word = last_color
-      word:gsub('()@([@%a])', 
-        function(pos, c)
-          if c == '@' then 
-            delta = delta + 1 
-          elseif c == 'x' then 
-            delta = delta + 5
-            last_color = word:sub(pos, pos+4)
-          else                 
-            delta = delta + 2 
-            last_color = word:sub(pos, pos+1)
+   indent = indent or ""
+   indent1 = indent1 or indent
+   limit = limit or 79
+   local here = 1-#indent1
+   local last_color = ''
+   return indent1..str:gsub("(%s+)()(%S+)()",
+     function(sp, st, word, fi)
+       local delta = 0
+       local color_before_current_word = last_color
+       word:gsub('()@([@%a])', 
+         function(pos, c)
+           if c == '@' then 
+             delta = delta + 1 
+           elseif c == 'x' then 
+             delta = delta + 5
+             last_color = word:sub(pos, pos+4)
+           else                 
+             delta = delta + 2 
+             last_color = word:sub(pos, pos+1)
           end
-        end)
-      here = here + delta
-      if fi-here > limit then
-        here = st - #indent + delta
-        return "\n"..indent..color_before_current_word..word
-      end
+         end)
+       here = here + delta
+       if fi-here > limit then
+         here = st - #indent + delta
+         return "\n"..indent..color_before_current_word..word
+       end
     end)
 end
 
 function noteeditor(str)
-  local note, note_to, note_subj, note_to_send = false, false, false, false
+  local board_table = {
+  {"Announce", "N"}, 
+  {"Mudinfo", "N"}, 
+  {"General", "Y"}, 
+  {"Misc", "Y"}, 
+  {"Claninfo", "Y"}, 
+  {"Clan", "Y"}, 
+  {"Tech", "Y"}, 
+  {"Ideas", "Y"}, 
+  {"Rankings", "N"}, 
+  {"Forsale", "Y"}, 
+  {"Roleplay", "Y"}, 
+  {"Art", "Y"}, 
+  {"Games", "Y"}, 
+  {"Typos", "Y"}, 
+  {"Bugs", "Y"}, 
+  {"Upgrades", "Y"},
+  {"Personal", "Y"}, 
+  {"Lottery", "N"}, 
+  {"Lasertag", "N"}, 
+  {"Jokes", "Y"}, 
+  {"Raiding", "Y"}, 
+  {"Voting", "N"}, 
+  {"Mafia", "N"}, 
+  {"Gquest", "N"}, 
+  {"Epics","Y"}
+  }
+
+
+  local note, note_to, note_subj, note_to_send, board_check = false, false, false, false, false
   
   if str == "new" then
-    note_to = utils.inputbox("To whom are you writing the note?", "To list", "all")
+    note_board = utils.inputbox("To which board are you posting?", "Board")
+
+    for _,v in ipairs(board_table) do
+      if string.upper(v[1]) == string.upper(note_board) and v[2] == "Y" then
+        board_check = true
+        break
+      end
+    end
+
+    if board_check then
+      note_to = utils.inputbox("To whom are you writing the note?", "To list", "all")
     
-    if note_to then
-      note_to_send = "note write " .. note_to
-      note_subj = utils.inputbox("What is the subject of your note?", "Subject")
+      if note_to then
+        note_to_send = "board " .. note_board .. ";note write " .. note_to
+        note_subj = utils.inputbox("What is the subject of your note?", "Subject")
       
-      if not note_subj then
-        note_subj = ".q"
+        if not note_subj then
+          note_subj = ".q"
+          note_to_send = "echo Note cancelled!"
+        end -- end note_subj    
+      else
         note_to_send = "echo Note cancelled!"
-      end -- end note_subj    
+      end -- end note_to
     else
       note_to_send = "echo Note cancelled!"
-    end -- end note_to
+    end
 
   elseif str == "reply" then
     note_to = utils.inputbox("To which note are you replying?", "Note number")
@@ -145,7 +189,7 @@ function noteeditor(str)
     end -- end note_to
   end
 
-  Send(note_to_send)
+  Execute(note_to_send)
 
   if note_to_send ~= "echo Note cancelled!" then
     if note_subj then
@@ -155,10 +199,9 @@ function noteeditor(str)
     note = utils.editbox("Write your note.", "Note Writer Box")
 
     if note then
-      Send(".c")
-      for line in note:gmatch("[^%c]+%c?") do 
+      for line in note:gmatch("[^%c]+[%c+]?") do 
         Send(note_wrap(line))
-        Send(" ")
+        --Send(" ")
       end
       Send(".s")
     else
