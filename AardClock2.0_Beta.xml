@@ -446,7 +446,7 @@ require 'mw_theme_base'
     end
 
     function update_plugin()
-        raw = "https://raw.githubusercontent.com/AardCrowley/Aardwolf-Scripts/master/Auction_Utilities/AardClock2.0_Beta.xml"
+        raw = "https://raw.githubusercontent.com/AardCrowley/Aardwolf-Scripts/master/AardClock2.0_Beta.xml"
 
         async_ok, async = pcall (require, "async")
 
