@@ -280,7 +280,7 @@ require 'mw_theme_base'
     end
 
     function center(t)
-        local twid = WindowTextWidth(win, font, t)
+        local twid = WindowTextWidth(win, font, t or 0)
         local cdiff = window_width - twid
 
         return cdiff/2
