@@ -25,6 +25,13 @@
         </timer>
     </timers>
 
+    <!--  Aliases -->
+
+    <aliases>
+        <alias enabled="y" match="aardclock update" script="update_plugin" sequence="100">
+        </alias>
+    </aliases>
+
     <!--  Script  -->
 
 
@@ -432,6 +439,42 @@ require 'mw_theme_base'
         canRedraw = true
         print("Mouseup!")
     end
+
+function update_plugin()
+    raw = "https://raw.githubusercontent.com/AardCrowley/Aardwolf-Scripts/master/Auction_Utilities/AardClock2.0_Beta.xml"
+
+    async_ok, async = pcall (require, "async")
+
+    if async_ok then
+        plugin_page = async.doAsyncRemoteRequest(raw, raw_get, "HTTPS")
+    else
+        ColourNote("white", "blue", "Error on plugin update!")
+    end
+    end
+
+    function raw_get(retval, page, status, headers, full_status, request_url)
+    if status == 200 then
+        raw_version = tonumber(string.match(page, '%s%s+version="([0-9%.]+)"'))
+    end
+
+    if raw_version == PLUGIN_VERSION then
+        ColourNote("white", "blue", PLUGIN_NAME .. " is up-to-date.")
+    elseif raw_version > PLUGIN_VERSION then
+        ColourNote("white", "blue", "Updating from version " .. PLUGIN_VERSION .. " to " .. raw_version .. ". Do not touch anything!")
+        local file = io.open(GetPluginInfo(GetPluginID(), 6), "w")
+        file:write(page)
+        file:close()
+    end
+
+    raw_version = nil
+
+    if "" == GetAlphaOption("script_prefix") then
+        SetAlphaOption("script_prefix", "\\\\\\")
+    end
+
+    Execute(GetAlphaOption("script_prefix") .. "DoAfterSpecial(1, \"ReloadPlugin('" .. GetPluginID() .. "')\", sendto.script)")
+    ColourNote("white", "blue", "Update complete!")
+    end -- end Update code
 ]]>
     </script>
 
