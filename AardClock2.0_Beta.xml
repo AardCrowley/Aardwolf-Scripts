@@ -120,7 +120,7 @@ require 'mw_theme_base'
     local font_width = WindowTextWidth(win, font, " ", 1)
 
     window_width = (20 * font_width) + 11
-    local cx = math.floor((window_width-5)/2) + 1
+    local cx = math.floor((window_width-5)/2) + 3
     local cy = cx + font_height
     canRedraw = true
 
