@@ -202,22 +202,6 @@ require 'mw_theme_base'
     end
 
     function drawFace()
-        local clock_numbers = {}
-        local startx, endy, circle_left, circle_top, circle_right, circle_bottom = 0, 0, 0, 0, 0, 0
-        for i = 1,12 do
-            table.insert(clock_numbers, {text = i, pos = findPos(i)})
-            if i == 6 then
-                endy = clock_numbers[6].pos.posy
-            end
-            if i == 12 then
-                starty = clock_numbers[12].pos.posy
-            end
-        end
-
-        local window_height = font_height + 5 + endy + starty + (font_height * (#footer_text + 2)) -- font_height * 10
-
-        WindowCreate(win, windowinfo.window_left, windowinfo.window_top, window_width, window_height, windowinfo.window_mode, windowinfo.window_flags + miniwin.create_keep_hotspots, ColourNameToRGB(Theme.SECONDARY_BODY))
-
         WindowDrawImage(win, "background", 0, 0, WindowInfo(win, 3), WindowInfo(win, 4), miniwin.image_stretch)
 
         local x = 5
@@ -272,11 +256,9 @@ require 'mw_theme_base'
         WindowText(win, font, string.format("[ %s ]", footer_text.DamType), center(string.format("[ %s ]", footer_text.DamType)), y, 0, 0, ColourNameToRGB(textColour))
 
 
-        movewindow.add_drag_handler (win, 0, 0, 0, window_height)
         WindowRectOp(win, 4, 1, 1, WindowInfo(win, 3)-1, WindowInfo(win, 4)-1, Theme.PRIMARY_BODY, Theme.SECONDARY_BODY) -- 9, 15 + 0x1000 + 0x4000)
         WindowSetZOrder(win, 50)
         WindowShow(win, true)
-
     end
 
     function center(t)
@@ -443,6 +425,18 @@ require 'mw_theme_base'
     function OnPluginInstall()
         PLUGIN_VERSION  = GetPluginInfo(GetPluginID(), 19)
         PLUGIN_NAME   = GetPluginInfo(GetPluginID(), 1)
+
+        clock_numbers = {}
+        for i = 1,12 do
+        table.insert(clock_numbers, {text = i, pos = findPos(i)})
+        end
+ 
+        local endy = clock_numbers[6].pos.posy
+        local starty = clock_numbers[12].pos.posy
+        local window_height = font_height + 5 + endy + starty + (font_height * (#footer_text + 2)) -- font_height * 10
+  
+        WindowCreate(win, windowinfo.window_left, windowinfo.window_top, window_width, window_height, windowinfo.window_mode, windowinfo.window_flags + miniwin.create_keep_hotspots, ColourNameToRGB(Theme.SECONDARY_BODY))
+        movewindow.add_drag_handler (win, 0, 0, 0, window_height)
     end
 
     function update_plugin()
