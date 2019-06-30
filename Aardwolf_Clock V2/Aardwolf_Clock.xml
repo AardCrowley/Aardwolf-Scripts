@@ -57,7 +57,7 @@
         Darkness    =   {134, 10, 18, 11, "Shadow"},
         Corrosion   =   {136, 8, 20, 12, "Acid"},
         Dagger      =   {120, 9, 18, 13, "Pierce"},
-        Storm       =   {131, 8, 19, 14, "Electric"},
+        Storm       =   {140, 8, 19, 14, "Electric"},
         Piety       =   {143, 7, 18, 15, "Holy"},
         Suffering   =   {135, 6, 19, 16, "Negative"},
         Burning     =   {144, 7, 20, 17, "Fire"},
