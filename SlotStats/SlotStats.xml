@@ -129,13 +129,13 @@ function showStats()
         aheadBehind = "behind"
         aheadBehindColour = "red"
     elseif difference > 0 then
-        aheadBehind = "ahead"
+        aheadBehind = "ahead of"
         aheadBehindColour = "green"
     elseif difference == 0 then
-        aheadBehind = "even"
+        aheadBehind = "even with"
     end
 
-    ColourNote("white", "", "You are ", aheadBehindColour, "", aheadBehind, "white", "", " of the House by ", "yellow", "", commas(difference), "white", "", " gold.")
+    ColourNote("white", "", "You are ", aheadBehindColour, "", aheadBehind, "white", "", " the House by ", "yellow", "", commas(difference), "white", "", " gold.")
     ColourNote("white", "", "Average winnings: ", "yellow", "", commas(math.floor(pay/tries)), "white", "", " gold.")
     print(string.rep("=", 80))
 end
