@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE muclient>
+<!-- Saved on Thursday, December 26, 2019, 8:20 AM -->
+<!-- MuClient version 5.07-pre -->
+
+<muclient>
+<plugin
+   name="SlotStats"
+   author="Crowley"
+   id="8df191366dbc56f8e3ec6c1c"
+   language="Lua"
+   purpose="Displays stats for playing Slots"
+   save_state="y"
+   date_written="2019-12-26 08:18:35"
+   requires="4.80"
+   version="1.0"
+   >
+
+</plugin>
+
+
+<!--  Get our standard constants -->
+
+<include name="constants.lua"/>
+
+<!--  Triggers  -->
+
+<triggers>
+  <trigger
+   enabled="y"
+   group="Slots"
+   match="^You put ([\d,]+) coins into the machine and spin!$"
+   regexp="y"
+   script="slotStart"
+   sequence="100"
+  >
+  </trigger>
+  <trigger
+   group="Slots"
+   match="^Congratulations! You win ([\d,]+) gold coins!$"
+   name="slotWin"
+   regexp="y"
+   script="slotsWin"
+   sequence="100"
+  >
+  </trigger>
+  <trigger
+   group="Slots"
+   match="^Sorry, you're not a winner\. Try again soon!$"
+   name="noWin"
+   regexp="y"
+   script="noPay"
+   sequence="100"
+  >
+  </trigger>
+</triggers>
+
+<!--  Aliases  -->
+
+<aliases>
+  <alias
+   match="slot(?:s|S)tats"
+   enabled="y"
+   regexp="y"
+   group="Slots"
+   script="showStats"
+   sequence="100"
+  >
+  </alias>
+</aliases>
+
+<!-- Script -->
+<script>
+<![CDATA[
+require 'commas'
+
+function OnPluginInstall()
+    if not GetVariable("slotTries") then
+        SetVariable("slotTries", 0)
+    end
+
+    if not GetVariable("coinsSpent") then
+        SetVariable("coinsSpent", 0)
+    end
+
+    if not GetVariable("slotPay") then
+        SetVariable("slotPay", 0)
+    end
+
+    ColourNote("white", "blue", "Type '", "yellow", "blue", "slotStats", "white", "blue", "' to view stats.")
+end
+
+function slotStart(name, line, args)
+    EnableTrigger("noWin")
+    EnableTrigger("slotWin")
+    SetVariable("slotTries", tonumber(GetVariable("slotTries")) + 1)
+
+    local current, spent = tonumber(GetVariable("coinsSpent")), string.gsub(args[1], ",", "")
+    local totalSpent = current + tonumber(spent)
+
+    SetVariable("coinsSpent", totalSpent)
+end
+
+function slotsWin(name, line, args)
+    EnableTrigger("noWin", false)
+    EnableTrigger("slotWin", false)
+
+    local current, pay = tonumber(GetVariable("slotPay")), string.gsub(args[1], ",", "")
+    local totalPay = current+tonumber(pay)
+    SetVariable("slotPay", totalPay)
+end
+
+function noPay(name, line, args)
+    EnableTrigger("noWin", false)
+    EnableTrigger("slotWin", false)
+end
+
+function showStats()
+    local spent, pay, tries = tonumber(GetVariable("coinsSpent")), tonumber(GetVariable("slotPay")), tonumber(GetVariable("slotTries"))
+    local aheadBehind = ""
+    local aheadBehindColour = "cyan"
+
+    local difference = pay-spent
+
+    print(string.rep("=",80))
+    ColourNote("white", "", "You have spent ", "yellow", "", commas(spent), "white", "", " gold coins over ", "cyan", "", commas(tries), "white", "", " spins, winning ", "yellow", "", commas(pay), "white", "", " gold.")
+
+    if difference < 0 then
+        aheadBehind = "behind"
+        aheadBehindColour = "red"
+    elseif difference > 0 then
+        aheadBehind = "ahead"
+        aheadBehindColour = "green"
+    elseif difference == 0 then
+        aheadBehind = "even"
+    end
+
+    ColourNote("white", "", "You are ", aheadBehindColour, "", aheadBehind, "white", "", " of the House by ", "yellow", "", commas(difference), "white", "", " gold.")
+    ColourNote("white", "", "Average winnings: ", "yellow", "", commas(math.floor(pay/tries)), "white", "", " gold.")
+    print(string.rep("=", 80))
+end
+
+]]>
+</script>
+
+</muclient>
