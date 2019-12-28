@@ -29,7 +29,7 @@
   <trigger
    enabled="y"
    group="Slots"
-   match="^You put ([\d,]+) coins into the machine and spin!$"
+   match="^You put ([\d,-]+) coins into the machine and spin!$"
    regexp="y"
    script="slotStart"
    sequence="100"
@@ -147,10 +147,15 @@ function slotStart(name, line, args)
     EnableTrigger("noWin")
     EnableTrigger("slotWin")
     EnableTrigger("gameCredits")
-    SetVariable("slotTries", tonumber(GetVariable("slotTries")) + 1)
+    --SetVariable("slotTries", tonumber(GetVariable("slotTries")) + 1)
 
     local current, spent = tonumber(GetVariable("coinsSpent")), string.gsub(args[1], ",", "")
     local totalSpent = current + tonumber(spent)
+    if tonumber(spent) < 0 then
+        SetVariable("slotTries", tonumber(GetVariable("slotTries")) - 1)
+    else
+        SetVariable("slotTries", tonumber(GetVariable("slotTries")) + 1)
+    end
 
     SetVariable("coinsSpent", totalSpent)
 end
@@ -176,6 +181,7 @@ function showStats()
     local aheadBehindColour = "cyan"
 
     local difference = pay-spent
+    local payback = (pay/spent)*100
 
     print(string.rep("=",79))
     ColourNote("white", "", "You have spent ", "yellow", "", commas(spent), "white", "", " gold coins over ", "cyan", "", commas(tries), "white", "", " spins, winning ", "yellow", "", commas(pay), "white", "", " gold.")
@@ -193,6 +199,7 @@ function showStats()
 
     ColourNote("white", "", "You are ", aheadBehindColour, "", aheadBehind, "white", "", " the House by ", "yellow", "", commas(difference), "white", "", " gold.")
     ColourNote("white", "", "Average winnings: ", "yellow", "", commas(math.floor(pay/tries)), "white", "", " gold.")
+    ColourNote("white", "", "Payback percentage: ", "cyan", "", string.format("%.2f", payback) .. "%")
     print(string.rep("=", 79))
 end
 
