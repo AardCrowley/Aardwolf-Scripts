@@ -56,9 +56,9 @@
     sequence="100"
     >
     <send>if string.len("%1") > 0 then
-      Send("%1 " .. tracker_db.last_quest_report)
+      SendNoEcho("%1 " .. tracker_db.last_quest_report)
       else
-      Send(tracker_db.report_channel .. tracker_db.last_quest_report)
+      SendNoEcho(tracker_db.report_channel .. tracker_db.last_quest_report)
       end</send>
     </alias>
   <alias
@@ -402,7 +402,7 @@ function QuestStart(t, r, a, c, z)
   tracker_db.current_quest_report = custom_report(tracker_db.strings.quest_start_string)
 
   if tracker_db.report_check == 1 then
-    Send(tracker_db.report_channel .. tracker_db.current_quest_report)
+    SendNoEcho(tracker_db.report_channel .. tracker_db.current_quest_report)
   end
 
   SetVariable("atracker", serialize.save("tracker_db"))
@@ -428,7 +428,7 @@ function QuestFail(z)
   tracker_db.last_quest_report = custom_report(tracker_db.strings.quest_failed_string)
 
   if tracker_db.report_check == 1 then
-    Send(tracker_db.report_channel .. tracker_db.last_quest_report)
+    SendNoEcho(tracker_db.report_channel .. tracker_db.last_quest_report)
   end
 
   SetVariable("atracker", serialize.save("tracker_db"))
@@ -443,7 +443,7 @@ function QuestKilled(z)
   end
 
   if tracker_db.report_check == 1 then
-    Send(tracker_db.report_channel .. custom_report(tracker_db.strings.quest_killed_string))
+    SendNoEcho(tracker_db.report_channel .. custom_report(tracker_db.strings.quest_killed_string))
   end
 end
 
@@ -542,7 +542,7 @@ function QuestComp(q, tq, p, tr, tp, m, l, d, da, qp, g, c, w, z)
   tracker_db.last_quest_report = custom_report(tracker_db.strings.quest_completed_string)
 
   if tracker_db.report_check == 1 then
-    Send(tracker_db.report_channel .. tracker_db.last_quest_report)
+    SendNoEcho(tracker_db.report_channel .. tracker_db.last_quest_report)
   end
 
   SetVariable("atracker", serialize.save("tracker_db"))
@@ -557,7 +557,7 @@ function QuestReady(z)
   end
 
   if tracker_db.report_check == 1 then
-    Send(tracker_db.report_channel .. custom_report(tracker_db.strings.quest_ready_string))
+    SendNoEcho(tracker_db.report_channel .. custom_report(tracker_db.strings.quest_ready_string))
   end
 end
 
@@ -570,7 +570,7 @@ function QuestReset(z)
   end
 
   if tracker_db.report_check == 1 then
-    Send(tracker_db.report_channel .. custom_report(tracker_db.strings.quest_reset_string))
+    SendNoEcho(tracker_db.report_channel .. custom_report(tracker_db.strings.quest_reset_string))
   end
 end
 
