@@ -50,9 +50,14 @@ function OnPluginBroadcast(msg, id, name, text)
 					ColourTell (RGBColourToName (v.textcolour),
 					RGBColourToName (v.backcolour),
 					v.text)
+				    break;
 				end
 			end
-			ColourTell("white", "", " (" .. gmcp("room.info.num") .. ")")
+			-- ColourTell("white", "", " (" .. gmcp("room.info.num") .. ")")
+			Hyperlink ("mapper goto " .. gmcp("room.info.num"),
+                        	   "(" .. gmcp("room.info.num") .. ")",
+                        	   "",
+                        	   "white", "black", 0)
 			Note("")
 		end
 	end
