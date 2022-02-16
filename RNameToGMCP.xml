@@ -33,6 +33,19 @@
   </trigger>
 </triggers>
 
+<aliases>
+  <alias
+	enabled="y"
+	keep_evaluating="y"
+	match="roomids"
+	send_to="12"
+	sequence="100"
+  >
+  <send>idEnabled = not idEnabled
+		SetVariable("idEnabled", tostring(idEnabled))
+		ColourNote("white", "blue", "Room IDs are now " .. (tostring(idEnabled) == "true" and "enabled" or "disabled") .. "!")</send>
+  </alias>
+</aliases>
 
 <!--  Script  -->
 
@@ -40,6 +53,9 @@
 <script>
 <![CDATA[
 require "gmcphelper"
+
+idEnabled = GetVariable("idEnabled") or "true"
+
 TSRtable = {}
 
 function OnPluginBroadcast(msg, id, name, text)
@@ -53,11 +69,13 @@ function OnPluginBroadcast(msg, id, name, text)
 				    break;
 				end
 			end
-			-- ColourTell("white", "", " (" .. gmcp("room.info.num") .. ")")
-			Hyperlink ("mapper goto " .. gmcp("room.info.num"),
-                        	   "(" .. gmcp("room.info.num") .. ")",
-                        	   "",
-                        	   "white", "black", 0)
+			if tostring(idEnabled) == "true" then
+				ColourTell("black", "black", " ")
+				Hyperlink ("mapper goto " .. gmcp("room.info.num"),
+								"(" .. gmcp("room.info.num") .. ")",
+								"",
+								"white", "black", 0)
+			end
 			Note("")
 		end
 	end
