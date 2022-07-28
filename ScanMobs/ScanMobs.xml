@@ -24,7 +24,7 @@
 
 <aliases>
    <alias group="scans"
-      match="sscan(?: (.*))?$" enabled="y"
+      match="^sscan(?: (.*))?$" enabled="y"
       script="scanMobs" sequence="100"
       regexp="y"
    ></alias>
