@@ -81,12 +81,14 @@
 
 <script>
 <![CDATA[
-require 'tprint'
+require 'gmcphelper'
 checkNames  = {}
 TSROutput   = {}
 dirTemp     = {}
 
 function scanMobs(name, line, wildcards)
+   scanCmd = (gmcp("char.status.state") == "8" and "survey") or "scan"
+
    if #wildcards[1] > 0 then
       checkNames = {}
       for word in wildcards[1]:gmatch("%w+") do
@@ -100,7 +102,7 @@ function scanMobs(name, line, wildcards)
       ColourNote("white", "black", "No mobs to scan for, executing regular scan.")
    end
 
-   Send("scan")
+   Send(scanCmd)
 end
 
 function scannedDir(name, line, wildcards)
