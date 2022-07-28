@@ -32,16 +32,17 @@
 
 <!-- Triggers -->
 <triggers>
-   <trigger group="scans"
+   <trigger group="scans" enabled="y"
       match="{scan}" name="scanOpen"
       omit_from_output="y" send_to="12" sequence="10" keep_evaluating="y">
       <send>
+         if startScan then
             TSROutput = {}
             dirTemp = {}
             EnableTrigger("scanDir")
             EnableTrigger("scanLine")
             EnableTrigger("scanClose")
-            EnableTrigger("scanOpen", false)</send>
+         end</send>
    ></trigger>
 
    <trigger group="scans"
@@ -71,7 +72,7 @@
    </trigger>
 
    <trigger group="scans"
-      match="{/scan}" name="scanClose"
+      match="{/scan}" name="scanClose" enabled="y"
       omit_from_output="y" script="scanClosed" sequence="10" keep_evaluating="y">
    ></trigger>
 </triggers>
@@ -87,7 +88,10 @@ TSROutput   = {}
 dirTemp     = {}
 
 function scanMobs(name, line, wildcards)
+
    scanCmd = (gmcp("char.status.state") == "8" and "survey") or "scan"
+
+   startScan = false
 
    if #wildcards[1] > 0 then
       checkNames = {}
@@ -97,12 +101,12 @@ function scanMobs(name, line, wildcards)
    end
 
    if #checkNames > 0 then
-      EnableTrigger("scanOpen")
+      startScan = true
    else
       ColourNote("white", "black", "No mobs to scan for, executing regular scan.")
    end
 
-   Send(scanCmd)
+   Send("scan")
 end
 
 function scannedDir(name, line, wildcards)
@@ -124,22 +128,24 @@ function scanCheck(name, line, wildcards)
 end
 
 function scanClosed()
-   EnableTrigger("scanDir", false)
-   EnableTrigger("scanLine", false)
-   EnableTrigger("scanClose", false)
+   if startScan then
+      EnableTrigger("scanDir", false)
+      EnableTrigger("scanLine", false)
 
-   if #TSROutput > 0 then
-      for i,j in pairs(TSROutput) do
-            for _,v in pairs(j) do
-               ColourTell (RGBColourToName (v.textcolour),
-             RGBColourToName (v.backcolour),
-             v.text)
-            end
-         Note("")
+      if #TSROutput > 0 then
+         for i,j in pairs(TSROutput) do
+               for _,v in pairs(j) do
+                  ColourTell (RGBColourToName (v.textcolour),
+                  RGBColourToName (v.backcolour),
+                  v.text)
+               end
+            Note("")
+         end
+      else
+         ColourNote("white", "blue", "Nothing found!")
       end
-   else
-      ColourNote("white", "blue", "Nothing found!")
    end
+   startScan = false
 end
 ]]>
 </script>
