@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE muclient>
+<!-- Saved on Sunday, August 14, 2022, 11:32 AM -->
+<!-- MuClient version 5.07-pre -->
+
+<muclient>
+<plugin
+   name="FilterChecker"
+   author="Crowley"
+   id="9e8d9bcaf979d048c65e08a7"
+   language="Lua"
+   purpose="Checks if a message contains a filter word."
+   save_state="y"
+   date_written="2022-08-14 11:26:12"
+   requires="4.90"
+   version="1.0"
+   >
+
+</plugin>
+
+<!-- Information
+
+This plugin is designed to search for key words from specified channels and perform an action of your choosing. In the filterTable, there are elements that the plugin needs in order to function:
+
+filter      This is the word you want to filter on. It will match partials to full.
+channel     This is the channel you want the filter to be compared against.
+action      This is the action you want done (must be a script function). Be mindful of single quotes and double quotes. If you open
+            with double quotes ("), strings within need to be single quotes (') or escaped double quotes (\").
+include     This is an inclusion argument, meaning the filter MUST include this at the beginning. This will
+            help prevent misfires due to how the plugin works. Without an inclusion, it will match on every
+            single character that matches the filter. For example, if someone mentioned on channel 'I can t'
+            it would match the 't' in 'transcendence' and fire. Include can be empty.
+
+If you want a word to match on several different channels, create a new table entry for each one. I will add a command in the near future to make it easier to add new filters. This is just a first draft.
+-->
+
+
+<script>
+<![CDATA[
+dofile(GetInfo(60) .. "aardwolf_colors.lua")
+require 'gmcphelper'
+
+filterTable = {
+   {filter = "transcendence", channel = "epics", action = "ColourNote('white', 'blue', 'Transcendence mentioned!')", include="tran"},
+   {filter = "test", channel = "gtell", action = "Send('smile')", include=""},
+}
+
+function OnPluginBroadcast(msg, id, name, text)
+   if (id == "3e7dedbe37e44942dd46d264") and (text == "comm.channel") then
+      local msg = strip_colours(gmcp("comm.channel.msg")):upper()
+      local doAction = ""
+      for _,v in ipairs(filterTable) do
+         assert(type(v.action) == "function" or type(v.action) == "string")
+         doAction = loadstring(v.action)
+         if v.channel == gmcp("comm.channel.chan") and v.filter:upper() ~= gmcp("char.base.name"):upper() and filterCheck(msg, v.filter:upper(), v.include:upper()) then
+            doAction()
+            break
+         end
+      end
+   end
+end
+
+function filterCheck(str, filter, include)
+   local start, matchFound, mFilter = 0, false, include .. "%w+"
+   for word in str:gmatch(mFilter) do
+      start = string.find(filter, word:upper())
+      if start == 1 then
+         matchFound = true
+         break
+      end
+   end
+   return matchFound
+end
+]]>
+</script>
+
+
+</muclient>
