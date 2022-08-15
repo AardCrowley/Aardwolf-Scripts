@@ -61,7 +61,7 @@ function OnPluginBroadcast(msg, id, name, text)
 end
 
 function filterCheck(str, filter, include)
-   local start, matchFound, mFilter = 0, false, include .. "%w+"
+   local start, matchFound, mFilter = 0, false, include .. "[%w%p]+"
    for word in str:gmatch(mFilter) do
       start = string.find(filter, word:upper())
       if start == 1 then
