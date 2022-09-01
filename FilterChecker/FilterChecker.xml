@@ -41,20 +41,27 @@ dofile(GetInfo(60) .. "aardwolf_colors.lua")
 require 'gmcphelper'
 
 filterTable = {
-   {filter = "transcendence", channel = "epics", action = "ColourNote('white', 'blue', 'Transcendence mentioned!')", include="tran"},
-   {filter = "test", channel = "gtell", action = "Send('smile')", include=""},
+   {filter = "transcendence", channel = "epics", sound = "gametalk.wav", include = "tran"},
+   {filter = "transcendence", channel = "gtell", sound = "gametalk.wav", include = "tran"},
+   {filter = "yuna", channel = "say", sound = "gclan.wav", include = "yun"},
+   {filter = "yuna", channel = "epics", sound = "gclan.wav", include = "yun"},
+   {filter = "yuna", channel = "gtell", sound = "gclan.wav", include = "yun"},
+   {filter = "yuna", channel = "clantalk", sound = "gclan.wav", include = "yun"},
+   {filter = "yuna", channel = "gossip", sound = "gclan.wav", include = "yun"},
 }
 
 function OnPluginBroadcast(msg, id, name, text)
    if (id == "3e7dedbe37e44942dd46d264") and (text == "comm.channel") then
-      local msg = strip_colours(gmcp("comm.channel.msg")):upper()
-      local doAction = ""
-      for _,v in ipairs(filterTable) do
-         assert(type(v.action) == "function" or type(v.action) == "string")
-         doAction = loadstring(v.action)
-         if v.channel == gmcp("comm.channel.chan") and v.filter:upper() ~= gmcp("char.base.name"):upper() and filterCheck(msg, v.filter:upper(), v.include:upper()) then
-            doAction()
-            break
+      if gmcp("comm.channel.player")) ~= gmcp("char.base.name") then
+         local msg = strip_colours(gmcp("comm.channel.msg")):upper()
+         local doAction = ""
+         for _,v in ipairs(filterTable) do
+            assert(type(v.action) == "function" or type(v.action) == "string")
+            doAction = loadstring(v.action)
+            if v.channel == gmcp("comm.channel.chan") and v.filter:upper() ~= gmcp("char.base.name"):upper() and filterCheck(msg, v.filter:upper(), v.include:upper()) then
+               doAction()
+               break
+            end
          end
       end
    end
