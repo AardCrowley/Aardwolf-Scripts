@@ -41,9 +41,9 @@ dofile(GetInfo(60) .. "aardwolf_colors.lua")
 require 'gmcphelper'
 
 filterTable = {
-   {filter = "transcendence", channel = "epics", sound = "gametalk.wav", include = "tran"},
-   {filter = "transcendence", channel = "gtell", sound = "gametalk.wav", include = "tran"},
-   {filter = "test", channel = "tell", sound = "sound.wav", include = ""}
+   {filter = "transcendence", channel = "epics", action = "PlaySound(0, 'gametalk.wav', false, 0, 0)", include = "tran"},
+   {filter = "transcendence", channel = "gtell", action = "PlaySound(0, 'gametalk.wav', false, 0, 0)", include = "tran"},
+   {filter = "test", channel = "tell", action = "Execute('smile')", include = ""}
 }
 
 function OnPluginBroadcast(msg, id, name, text)
@@ -54,7 +54,7 @@ function OnPluginBroadcast(msg, id, name, text)
          for _,v in ipairs(filterTable) do
             assert(type(v.action) == "function" or type(v.action) == "string")
             doAction = loadstring(v.action)
-            if v.channel == gmcp("comm.channel.chan") and v.filter:upper() ~= gmcp("char.base.name"):upper() and filterCheck(msg, v.filter:upper(), v.include:upper()) then
+            if v.channel == gmcp("comm.channel.chan") and filterCheck(msg, v.filter:upper(), v.include:upper()) then
                doAction()
                break
             end
