@@ -48,7 +48,7 @@ filterTable = {
 
 function OnPluginBroadcast(msg, id, name, text)
    if (id == "3e7dedbe37e44942dd46d264") and (text == "comm.channel") then
-      if gmcp("comm.channel.player")) ~= gmcp("char.base.name") then
+      if gmcp("comm.channel.player") ~= gmcp("char.base.name") then
          local msg = strip_colours(gmcp("comm.channel.msg")):upper()
          local doAction = ""
          for _,v in ipairs(filterTable) do
