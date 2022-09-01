@@ -43,11 +43,7 @@ require 'gmcphelper'
 filterTable = {
    {filter = "transcendence", channel = "epics", sound = "gametalk.wav", include = "tran"},
    {filter = "transcendence", channel = "gtell", sound = "gametalk.wav", include = "tran"},
-   {filter = "yuna", channel = "say", sound = "gclan.wav", include = "yun"},
-   {filter = "yuna", channel = "epics", sound = "gclan.wav", include = "yun"},
-   {filter = "yuna", channel = "gtell", sound = "gclan.wav", include = "yun"},
-   {filter = "yuna", channel = "clantalk", sound = "gclan.wav", include = "yun"},
-   {filter = "yuna", channel = "gossip", sound = "gclan.wav", include = "yun"},
+   {filter = "test", channel = "tell", sound = "sound.wav", include = ""}
 }
 
 function OnPluginBroadcast(msg, id, name, text)
