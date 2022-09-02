@@ -43,12 +43,12 @@ require 'gmcphelper'
 filterTable = {
    {filter = "transcendence", channel = "epics", action = "PlaySound(0, 'gametalk.wav', false, 0, 0)", include = "tran"},
    {filter = "transcendence", channel = "gtell", action = "PlaySound(0, 'gametalk.wav', false, 0, 0)", include = "tran"},
-   {filter = "test", channel = "tell", action = "Execute('smile')", include = ""}
+   {filter = "test", channel = "gtell", action = "Execute('smile')", include = ""}
 }
 
 function OnPluginBroadcast(msg, id, name, text)
    if (id == "3e7dedbe37e44942dd46d264") and (text == "comm.channel") then
-      if gmcp("comm.channel.player") ~= gmcp("char.base.name") then
+      if (gmcp("comm.channel.player") == gmcp("char.base.name")) then
          local msg = strip_colours(gmcp("comm.channel.msg")):upper()
          local doAction = ""
          for _,v in ipairs(filterTable) do
@@ -64,7 +64,9 @@ function OnPluginBroadcast(msg, id, name, text)
 end
 
 function filterCheck(str, filter, include)
-   local start, matchFound, mFilter = 0, false, include .. "[%w%p]+"
+   filter = filter:gsub("%p", "")
+   str = str:gsub("%p", "")
+   local start, matchFound, mFilter = 0, false, include .. "[%w]+"
    for word in str:gmatch(mFilter) do
       start = string.find(filter, word:upper())
       if start == 1 then
