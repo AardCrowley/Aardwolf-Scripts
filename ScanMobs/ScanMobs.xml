@@ -57,10 +57,14 @@
       name="scanLine" omit_from_output="y"
       send_to="14" keep_evaluating="y" sequence="10"
    ><send>
-      local scanned = "%1"
+   print(scanned)
+   local scanned = "%1"
+   scanned = scanned:upper()
 
    for _,v in ipairs(checkNames) do
-      if scanned:upper():find(v:upper()) then
+      local vStr = "%f[%S]" .. v:upper() .. "%f[%A]"
+
+      if string.match(scanned, vStr) then
          if #dirTemp > 0 then
             TSROutput[(#TSROutput+1)] = dirTemp
             dirTemp = {}
@@ -88,13 +92,13 @@ TSROutput   = {}
 dirTemp     = {}
 
 function scanMobs(name, line, wildcards)
-
    scanCmd = (gmcp("char.status.state") == "8" and "survey") or "scan"
 
    startScan = false
 
    if #wildcards[1] > 0 then
       checkNames = {}
+
       for word in wildcards[1]:gmatch("%w+") do
          table.insert(checkNames, word)
       end
@@ -106,25 +110,7 @@ function scanMobs(name, line, wildcards)
       ColourNote("white", "black", "No mobs to scan for, executing regular scan.")
    end
 
-   Send("scan")
-end
-
-function scannedDir(name, line, wildcards)
-   dirTemp = TriggerStyleRuns
-end
-
-function scanCheck(name, line, wildcards)
-   local scanned = wildcards[1]
-
-   for _,v in ipairs(checkNames) do
-      if scanned:upper():find(v:upper()) then
-         if #dirTemp > 0 then
-            TSROutput[(#TSROutput+1)] = dirTemp
-            dirTemp = {}
-         end
-         table.insert(TSROutput, TriggerStyleRuns)
-      end
-   end
+   Send(scanCmd)
 end
 
 function scanClosed()
