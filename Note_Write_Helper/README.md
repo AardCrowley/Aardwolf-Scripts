@@ -10,8 +10,6 @@ There are two commands to use: 'nnw new' and 'nnw reply'. The 'new' parameter wi
 
 # Other notes
 
-Currently, the plugin doesn't recognize 'nil' lines, or lines without text in them at all. If you're looking to separate your paragraphs, you'll need to either add '@w' or a space (' ') on the blank lines to separate them.
-
-The only other thing that this plugin cannot handle is long links, or words that are longer than 79 characters. If you're posting a link, you're better off using a URL shortner to post it.
+This has now been upgraded to no longer need to insert a space to process a paragraph break. It has new code in it, so if it breaks, please let me know.
 
 Any questions or bugs, please let me know. Thanks!
