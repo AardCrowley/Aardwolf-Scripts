@@ -57,7 +57,7 @@ returns
 
   <script>
     <![CDATA[
-if not type(string.split) == "function" then
+if type(string.split) ~= "function" then
    require 'string_split'
 end
 
