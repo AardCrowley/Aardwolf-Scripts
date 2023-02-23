@@ -55,7 +55,8 @@ friendsAlpha = {}
 count = 0
 reverse = false
 
-strForm   = "@w%3d) - %-12s@R(Offline - %d day%s and %02d:%02d:%02d)\n"
+--strForm   = "@w%3d) - %-12s@R(Offline - %d day%s and %02d:%02d:%02d)\n"
+strForm   = "@w%3d) - %-12s@R(Offline -%s%02d:%02d:%02d)\n"
 statForm  = "@w%3d) - %-12s%s(%s)\n"
 
 function resetValues()
@@ -109,14 +110,18 @@ function returnOutput()
   friendSeconds = sortTableByValue(friendSeconds)
 
   for i,v in pairs(friendSeconds) do
+      local dayStr = " "
       local kname = v.key
       local fTable = friendAgo[kname]
-      local days = fTable.days
+      local days = tonumber(fTable.days)
       local hours = fTable.hours
       local minutes = fTable.minutes
       local seconds = fTable.seconds
-      local plural = (tonumber(days) == 1 and "" or "s")
-    Simulate(ColoursToANSI(string.format(strForm, i, kname, days, plural, hours, minutes, seconds)))
+      local plural = (days == 1 and "day" or "days")
+      if days > 0 then
+         dayStr = " " .. days .. " " .. plural .. " and "
+      end
+    Simulate(ColoursToANSI(string.format(strForm, i, kname, dayStr, hours, minutes, seconds)))
     count = i
   end
 
