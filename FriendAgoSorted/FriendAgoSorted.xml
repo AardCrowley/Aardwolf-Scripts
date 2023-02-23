@@ -55,8 +55,8 @@ friendsAlpha = {}
 count = 0
 reverse = false
 
-strForm   = "@w%3d) - %-12s@R(Offline - %s%02d:%02d:%02d)\n"
-statForm  = "@w%3d) - %-12s%s(%s)\n"
+strForm   = "@w%3d) - %-13s@R(Offline - %s%02d:%02d:%02d)\n"
+statForm  = "@w%3d) - %-13s%s(%s)\n"
 
 function resetValues()
   friendAgo = {}
