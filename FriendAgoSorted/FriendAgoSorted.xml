@@ -19,7 +19,7 @@
     </trigger>
     <trigger group="friendCheck" match="^\s{0,2}\d+\) - (\w+)\s+\((?:(Online|Private|Missing|Linkdead))\)" regexp="y" script="storeOther" sequence="100" omit_from_output="y">
     </trigger>
-    <trigger group="friendCheck" match="^$" regexp="y" send_to="12" sequence="100">
+    <trigger group="friendCheck" match="^{/friend}$" regexp="y" send_to="12" sequence="100" omit_from_output="y">
       <send>EnableTriggerGroup("friendCheck", false)
    returnOutput()
       </send>
@@ -37,6 +37,7 @@
       end
       EnableTriggerGroup("friendCheck")
       Send("friend ago")
+      Send("echo {/friend}")
       </send>
     </alias>
   </aliases>
