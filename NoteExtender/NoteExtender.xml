@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE muclient>
+<!-- Saved on Wednesday, March 09, 2022, 11:04 AM -->
+<!-- MuClient version 5.07-pre -->
+
+
+<muclient>
+<plugin
+   name="NoteExtender"
+   author="Crowley"
+   id="c49e43d9dce931263263088b"
+   language="Lua"
+   purpose="Note output and hyperlinks"
+   save_state="y"
+   date_written="2022-03-09 11:02:09"
+   requires="5.07"
+   version="1.0"
+   sequence="10"
+   >
+
+</plugin>
+<!-- Aliases -->
+
+<aliases>
+  <alias
+   match="^(note read(?: \d+| last| again)?)$"
+   enabled="y"
+   regexp="y"
+   script="startNoteRead"
+   sequence="100"
+  >
+  </alias>
+
+  <alias
+   match="^notewin (on|off|show|hide)$"
+   enabled="y"
+   regexp="y"
+   ignore_case="y"
+   script="toggleNoteWin"
+   sequence="100"
+   >
+   </alias>
+
+<alias
+   match="^(note (list(?: \d+)?|unread))$"
+   enabled="y"
+   regexp="y"
+   script="startNoteList"
+   sequence="100"
+  >
+  </alias>
+</aliases>
+
+<script>
+<![CDATA[
+
+local f = io.open(GetInfo(66) .. "/lua/wrapped_captures.lua")
+local prefix = GetAlphaOption("script_prefix")
+
+if f == nil then
+   ColourNote("white", "blue", "Sorry, you do not have 'wrapped_captures.lua' and will not be able to use this script. Please update your snapshot of the AardMUSH package to use this plugin. Unloading plugin to prevent issues.")
+   Execute(prefix .. 'DoAfterSpecial(1, "UnloadPlugin(\'' .. GetPluginID() .. '\')", sendto.script)')
+else
+   require "wrapped_captures"
+   f:close()
+end
+
+require 'themed_miniwindows'
+
+if not GetVariable("noteShow") then
+   SetVariable("noteShow", "true")
+   noteShow = GetVariable("noteShow")
+else
+   noteShow = GetVariable("noteShow")
+end
+
+function OnPluginInstall()
+    NotesWin = ThemedTextWindow(
+    "Notes",                    -- string, required, a unique identifier for this window
+    200, -- integer, required, where to put it if the player hasn't moved it
+    200,  -- integer, required, where to put it if the player hasn't moved it
+    840,         -- integer, required, how big to make it if the player hasn't moved it
+    500,        -- integer, required, how big to make it if the player hasn't moved it
+    "Note",                 -- string, optional (nil means no titlebar), text to put into the title
+    "center",       -- string, optional (default is "center"), "left", "center", or "right"
+    true,          -- boolean, optional (default is false), true adds a close button in the top left
+    false,            -- boolean, optional (default is false), make the window resizeable
+    true,       -- boolean, optional (default is false), add a scrollbar and mousewheel scrolling
+    true,       -- boolean, optional (default is false), make the text selectable
+    true,         -- boolean, optional (default is false), make the text copyable via right-click
+    true,        -- boolean, optional (default is false), turn detected URLs into clickable links
+    true,              -- boolean, optional (default is false), automatically wrap text lines that are too wide
+    "Bitstream Vera Sans Mono",       -- string, optional (default is Dina), override the title font name
+    10,       -- integer, optional (default is 10), override the title font size
+    "Bitstream Vera Sans Mono",        -- string, optional (default is Dina), override the body text font name
+    10,        -- integer, optional (default is 10), override the body text font size
+    1000,        -- integer, optional (default is 1000), maximum number of text lines to keep
+    5,          -- integer, optional (default is 5 pixels), space between text and miniwindow frame
+    true          -- boolean, optional (default is false), true will prevent the window from appearing until you call :show() on it
+    )
+end
+
+function startNoteRead(name, line, wildcards)
+   local param = wildcards[1]
+   if noteShow == "true" then
+      if not WindowInfo("Notes", 1) then OnPluginInstall() end
+      NotesWin:clear(false)
+      Capture.untagged_output(param, true, true, true, addToWindow, false)
+   else
+      Send(param)
+   end
+end
+
+function startNoteList(name, line, wildcards)
+   local param = wildcards[1]
+   Capture.untagged_output(param, true, true, true, hyperlinknotes, false)
+end
+
+function addToWindow(lines)
+   NotesWin:clear(false)
+   NotesWin:add_text(lines, false)
+
+   NotesWin:fit_contents(850, 500)
+   NotesWin:set_scroll(1)
+   NotesWin:show()
+end
+
+function hyperlinknotes(lines)
+   for i,v in ipairs(lines) do
+      if i < 5 or i == #lines then
+         Simulate(stylesToANSI(v) .. "\n")
+      else
+         for j,k in ipairs(v) do
+            if j == 2 then
+               Hyperlink(prefix .. "Execute('note read " .. k.text .. "')", k.text, "", RGBColourToName(k.textcolour), RGBColourToName(k.backcolour))
+            else
+               ColourTell(RGBColourToName(k.textcolour), RGBColourToName(k.backcolour), k.text)
+            end
+         end
+         Note("")
+      end
+   end
+end
+
+function toggleNoteWin(name, line, wildcards)
+   if wildcards[1] == "on" or wildcards[1] == "show" then
+      noteShow = "true"
+   else
+      noteShow = "false"
+   end
+   ColourNote("white", "blue", "Toggled Note Window Status: " .. wildcards[1])
+   SetVariable("noteShow", noteShow)
+end
+
+]]>
+</script>
+</muclient>
