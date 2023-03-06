@@ -154,7 +154,7 @@ function toggleNoteWin(name, line, wildcards)
       ColourNote("white", "blue", "Toggled Note Window Status: " .. wildcards[1])
    elseif wildcards[1] == "clear" then
       NotesWin:clear(false)
-      NotesWin:show()
+      NotesWin:hide()
       ColourNote("white", "blue", "Clearing Note Window...")
    elseif wildcards[1] == "help" then
       onHelp()
