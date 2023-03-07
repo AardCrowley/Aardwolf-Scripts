@@ -64,6 +64,10 @@ if f == nil then
 else
    require "wrapped_captures"
    f:close()
+   if type(Capture.untagged_output) == nil then
+      ColourNote("white", "blue", "Sorry, you do not have 'wrapped_captures.lua' and will not be able to use this script. Please update your snapshot of the AardMUSH package to use this plugin. Unloading plugin to prevent issues.")
+      Execute(prefix .. 'DoAfterSpecial(1, "UnloadPlugin(\'' .. GetPluginID() .. '\')", sendto.script)')
+   end
 end
 
 require 'themed_miniwindows'
