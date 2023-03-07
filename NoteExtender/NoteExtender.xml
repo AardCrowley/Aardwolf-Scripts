@@ -85,15 +85,15 @@ function OnPluginInstall()
     "Note",                 -- string, optional (nil means no titlebar), text to put into the title
     "center",       -- string, optional (default is "center"), "left", "center", or "right"
     true,          -- boolean, optional (default is false), true adds a close button in the top left
-    false,            -- boolean, optional (default is false), make the window resizeable
+    true,            -- boolean, optional (default is false), make the window resizeable
     true,       -- boolean, optional (default is false), add a scrollbar and mousewheel scrolling
     true,       -- boolean, optional (default is false), make the text selectable
     true,         -- boolean, optional (default is false), make the text copyable via right-click
     true,        -- boolean, optional (default is false), turn detected URLs into clickable links
     true,              -- boolean, optional (default is false), automatically wrap text lines that are too wide
-    "Bitstream Vera Sans Mono",       -- string, optional (default is Dina), override the title font name
+    "Dina",       -- string, optional (default is Dina), override the title font name
     10,       -- integer, optional (default is 10), override the title font size
-    "Bitstream Vera Sans Mono",        -- string, optional (default is Dina), override the body text font name
+    "Dina",        -- string, optional (default is Dina), override the body text font name
     10,        -- integer, optional (default is 10), override the body text font size
     1000,        -- integer, optional (default is 1000), maximum number of text lines to keep
     5,          -- integer, optional (default is 5 pixels), space between text and miniwindow frame
