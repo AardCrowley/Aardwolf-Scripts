@@ -133,7 +133,7 @@ function hyperlinknotes(lines)
       else
          for j,k in ipairs(v) do
             if j == 2 then
-               Hyperlink(prefix .. "Execute('note read " .. string.gsub(k.text, " ", "") .. "')", k.text, "", RGBColourToName(k.textcolour), RGBColourToName(k.backcolour))
+               Hyperlink(prefix .. "Execute('note read " .. string.gsub(k.text, " ", "") .. "')", k.text, "note read " .. string.gsub(k.text, " ", ""), RGBColourToName(k.textcolour), RGBColourToName(k.backcolour))
             else
                ColourTell(RGBColourToName(k.textcolour), RGBColourToName(k.backcolour), k.text)
             end
