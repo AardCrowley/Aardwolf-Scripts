@@ -24,7 +24,7 @@
 
 <aliases>
   <alias
-   match="^(note read(?: \d+| last| again)?)$"
+   match="^(note(?: read(?: \d+| last| again)?)?)$"
    enabled="y"
    regexp="y"
    script="startNoteRead"
