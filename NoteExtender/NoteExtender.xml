@@ -93,9 +93,9 @@ function OnPluginInstall()
     true,        -- boolean, optional (default is false), turn detected URLs into clickable links
     true,              -- boolean, optional (default is false), automatically wrap text lines that are too wide
     GetAlphaOption("output_font_name"),       -- string, optional (default is Dina), override the title font name
-    GetAlphaOption("output_font_height"),       -- integer, optional (default is 10), override the title font size
+    GetOption("output_font_height"),       -- integer, optional (default is 10), override the title font size
     GetAlphaOption("output_font_name"),        -- string, optional (default is Dina), override the body text font name
-    GetAlphaOption("output_font_height"),        -- integer, optional (default is 10), override the body text font size
+    GetOption("output_font_height"),        -- integer, optional (default is 10), override the body text font size
     1000,        -- integer, optional (default is 1000), maximum number of text lines to keep
     5,          -- integer, optional (default is 5 pixels), space between text and miniwindow frame
     true          -- boolean, optional (default is false), true will prevent the window from appearing until you call :show() on it
