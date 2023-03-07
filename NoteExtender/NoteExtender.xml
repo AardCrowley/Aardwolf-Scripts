@@ -54,20 +54,17 @@
 
 <script>
 <![CDATA[
+local extras = require "aard_lua_extras"
+require "gmcphelper"
+local snapshotV = tonumber(extras.PackageVersion())
 
-local f = io.open(GetInfo(66) .. "/lua/wrapped_captures.lua")
 local prefix = GetAlphaOption("script_prefix")
 
-if f == nil then
-   ColourNote("white", "blue", "Sorry, you do not have 'wrapped_captures.lua' and will not be able to use this script. Please update your snapshot of the AardMUSH package to use this plugin. Unloading plugin to prevent issues.")
+if (snapshotV < 2245) or (snapshotV < 2252 and tonumber(gmcp("char.base.level")) > 201) then
+   ColourNote("white", "blue", "Sorry, your snapshot of the AardMUSH package is not compatible for your level and you will not be able to use this script. Please update your snapshot of the AardMUSH package to use this plugin. Unloading plugin to prevent issues.")
    Execute(prefix .. 'DoAfterSpecial(1, "UnloadPlugin(\'' .. GetPluginID() .. '\')", sendto.script)')
 else
    require "wrapped_captures"
-   f:close()
-   if type(Capture.untagged_output) == nil then
-      ColourNote("white", "blue", "Sorry, you do not have 'wrapped_captures.lua' and will not be able to use this script. Please update your snapshot of the AardMUSH package to use this plugin. Unloading plugin to prevent issues.")
-      Execute(prefix .. 'DoAfterSpecial(1, "UnloadPlugin(\'' .. GetPluginID() .. '\')", sendto.script)')
-   end
 end
 
 require 'themed_miniwindows'
@@ -95,10 +92,10 @@ function OnPluginInstall()
     true,         -- boolean, optional (default is false), make the text copyable via right-click
     true,        -- boolean, optional (default is false), turn detected URLs into clickable links
     true,              -- boolean, optional (default is false), automatically wrap text lines that are too wide
-    "Dina",       -- string, optional (default is Dina), override the title font name
-    10,       -- integer, optional (default is 10), override the title font size
-    "Dina",        -- string, optional (default is Dina), override the body text font name
-    10,        -- integer, optional (default is 10), override the body text font size
+    GetAlphaOption("output_font_name"),       -- string, optional (default is Dina), override the title font name
+    GetAlphaOption("output_font_height"),       -- integer, optional (default is 10), override the title font size
+    GetAlphaOption("output_font_name"),        -- string, optional (default is Dina), override the body text font name
+    GetAlphaOption("output_font_height"),        -- integer, optional (default is 10), override the body text font size
     1000,        -- integer, optional (default is 1000), maximum number of text lines to keep
     5,          -- integer, optional (default is 5 pixels), space between text and miniwindow frame
     true          -- boolean, optional (default is false), true will prevent the window from appearing until you call :show() on it
