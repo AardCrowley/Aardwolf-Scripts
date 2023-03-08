@@ -43,7 +43,7 @@
    </alias>
 
 <alias
-   match="^(note (list(?: \d+)?|unread))$"
+   match="^(note\s?(?:list(?:\s\d+)?|unread|to\s\w+|from\s\w+|subj\s.+)?)$"
    enabled="y"
    regexp="y"
    script="startNoteList"
@@ -60,7 +60,7 @@ local snapshotV = tonumber(extras.PackageVersion())
 
 local prefix = GetAlphaOption("script_prefix")
 
-if (snapshotV < 2245) or (snapshotV < 2252 and tonumber(gmcp("char.base.level")) > 201) then
+if (snapshotV< 2245) or (snapshotV < 2252 and tonumber(gmcp("char.base.level")) > 201) then
    ColourNote("white", "blue", "Sorry, your snapshot of the AardMUSH package is not compatible for your level and you will not be able to use this script. Please update your snapshot of the AardMUSH package to use this plugin. Unloading plugin to prevent issues.")
    Execute(prefix .. 'DoAfterSpecial(1, "UnloadPlugin(\'' .. GetPluginID() .. '\')", sendto.script)')
 else
@@ -78,27 +78,27 @@ end
 
 function OnPluginInstall()
     NotesWin = ThemedTextWindow(
-    "Notes",                    -- string, required, a unique identifier for this window
-    200, -- integer, required, where to put it if the player hasn't moved it
-    200,  -- integer, required, where to put it if the player hasn't moved it
-    840,         -- integer, required, how big to make it if the player hasn't moved it
-    500,        -- integer, required, how big to make it if the player hasn't moved it
-    "Note",                 -- string, optional (nil means no titlebar), text to put into the title
-    "center",       -- string, optional (default is "center"), "left", "center", or "right"
-    true,          -- boolean, optional (default is false), true adds a close button in the top left
-    true,            -- boolean, optional (default is false), make the window resizeable
-    true,       -- boolean, optional (default is false), add a scrollbar and mousewheel scrolling
-    true,       -- boolean, optional (default is false), make the text selectable
-    true,         -- boolean, optional (default is false), make the text copyable via right-click
-    true,        -- boolean, optional (default is false), turn detected URLs into clickable links
-    true,              -- boolean, optional (default is false), automatically wrap text lines that are too wide
-    GetAlphaOption("output_font_name"),       -- string, optional (default is Dina), override the title font name
-    GetOption("output_font_height"),       -- integer, optional (default is 10), override the title font size
-    GetAlphaOption("output_font_name"),        -- string, optional (default is Dina), override the body text font name
-    GetOption("output_font_height"),        -- integer, optional (default is 10), override the body text font size
-    1000,        -- integer, optional (default is 1000), maximum number of text lines to keep
-    5,          -- integer, optional (default is 5 pixels), space between text and miniwindow frame
-    true          -- boolean, optional (default is false), true will prevent the window from appearing until you call :show() on it
+    "Notes",                                 -- string, required, a unique identifier for this window
+    200,                                     -- integer, required, where to put it if the player hasn't moved it
+    200,                                     -- integer, required, where to put it if the player hasn't moved it
+    840,                                     -- integer, required, how big to make it if the player hasn't moved it
+    500,                                     -- integer, required, how big to make it if the player hasn't moved it
+    "Note",                                  -- string, optional (nil means no titlebar), text to put into the title
+    "center",                                -- string, optional (default is "center"), "left", "center", or "right"
+    true,                                    -- boolean, optional (default is false), true adds a close button in the top left
+    true,                                    -- boolean, optional (default is false), make the window resizeable
+    true,                                    -- boolean, optional (default is false), add a scrollbar and mousewheel scrolling
+    true,                                    -- boolean, optional (default is false), make the text selectable
+    true,                                    -- boolean, optional (default is false), make the text copyable via right-click
+    true,                                    -- boolean, optional (default is false), turn detected URLs into clickable links
+    true,                                    -- boolean, optional (default is false), automatically wrap text lines that are too wide
+    GetAlphaOption("output_font_name"),      -- string, optional (default is Dina), override the title font name
+    GetOption("output_font_height"),         -- integer, optional (default is 10), override the title font size
+    GetAlphaOption("output_font_name"),      -- string, optional (default is Dina), override the body text font name
+    GetOption("output_font_height"),         -- integer, optional (default is 10), override the body text font size
+    1000,                                    -- integer, optional (default is 1000), maximum number of text lines to keep
+    5,                                       -- integer, optional (default is 5 pixels), space between text and miniwindow frame
+    true                                     -- boolean, optional (default is false), true will prevent the window from appearing until you call :show() on it
     )
 end
 
@@ -127,8 +127,37 @@ function addToWindow(lines)
    NotesWin:show()
 end
 
+
+function findBoundaries(lines)
+   local first_index = nil
+   local last_index = nil
+
+-- Find the first and last indices with ~ in the text field
+   for i, v in ipairs(lines) do
+       if (string.find(v[1].text, "~") or string.find(v[1].text, "No more new posts")) and not first_index then
+           first_index = i
+      end
+      if (string.find(v[1].text, "~") or string.find(v[1].text, "There are no new")) then
+           last_index = i
+      end
+   end
+
+-- Remove all the entries before the first ~ and after the last ~
+   if first_index and last_index then
+       for i = #lines, last_index + 1, -1 do
+           table.remove(lines, i)
+      end
+      for i = first_index - 1, 1, -1 do
+           table.remove(lines, i)
+      end
+   end
+
+   return lines
+end
+
+
 function hyperlinknotes(lines)
-   for i,v in ipairs(lines) do
+   for i,v in ipairs(findBoundaries(lines)) do
       if i < 5 or i == #lines then
          Simulate(stylesToANSI(v) .. "\n")
       else
