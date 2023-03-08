@@ -178,10 +178,12 @@ function toggleNoteWin(name, line, wildcards)
       noteShow = "true"
       SetVariable("noteShow", noteShow)
       ColourNote("white", "blue", "Toggled Note Window Status: " .. wildcards[1])
+      NotesWin:show()
    elseif wildcards[1] == "off" or wildcards[1] == "hide" then
       noteShow = "false"
       SetVariable("noteShow", noteShow)
       ColourNote("white", "blue", "Toggled Note Window Status: " .. wildcards[1])
+      NotesWin:hide()
    elseif wildcards[1] == "clear" then
       NotesWin:clear(false)
       NotesWin:hide()
