@@ -131,7 +131,7 @@ function findBoundaries(tbl)
 end
 
 function hyperlinknotes(lines)
-   for i,v in ipairs(extract_lines(lines)) do
+   for i,v in ipairs(findBoundaries(lines)) do
       if i < 5 or i == #lines then
          Simulate(stylesToANSI(v) .. "\n")
       else
