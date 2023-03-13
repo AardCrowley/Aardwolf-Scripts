@@ -26,6 +26,8 @@ require "gmcphelper"
 local extras = require "aard_lua_extras"
 local snapshotV = tonumber(extras.PackageVersion())
 
+dofile(GetInfo(60) .. "aardwolf_colours.lua")
+
 local prefix = GetAlphaOption("script_prefix")
 
 if (snapshotV< 2245) or (snapshotV < 2252 and tonumber(gmcp("char.base.level")) > 201) then
