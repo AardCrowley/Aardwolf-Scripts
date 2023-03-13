@@ -88,29 +88,19 @@ function startNoteList(name, line, wildcards)
 end
 
 function findBoundaries(tbl)
-   local foundStart = false
    local tildeStr = string.rep("~", 79)
-
-   for i,v in ipairs(tbl) do
-
-      if v[1].text == tildeStr or v[1].text:find("No more new") then
-         foundStart = true
-         break
-      else
-         table.remove(tbl, i)
-      end
-   end
-
-   if foundStart then
-      for i = #tbl, 1, -1 do
-         if tbl[i][1].text == tildeStr or tbl[i][1].text:find("There are no") or tbl[i][1].text:find("Changed") then
-            break
-         else
-            table.remove(tbl, i)
+   for indexStart,v in ipairs(tbl) do
+      if v[1].text == tildeStr then
+         for indexEnd = #tbl, 1, -1 do
+            if tbl[indexEnd][1].text == tildeStr then
+               table.move(tbl, indexStart, indexEnd, 1)
+               local len = indexEnd - indexStart + 1
+               table.move(tbl, #tbl + 1, #tbl*2 - len, len + 1)
+               return tbl
+            end
          end
       end
    end
-
    return tbl
 end
 
