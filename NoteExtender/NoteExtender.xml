@@ -25,6 +25,7 @@
 local extras = require "aard_lua_extras"
 require "gmcphelper"
 local snapshotV = tonumber(extras.PackageVersion())
+require 'tprint'
 
 local prefix = GetAlphaOption("script_prefix")
 
@@ -89,9 +90,9 @@ end
 function findBoundaries(tbl)
    local tildeStr = string.rep("~", 79)
    for indexStart,v in ipairs(tbl) do
-      if v[1].text == tildeStr then
+      if v[1].text == tildeStr or v[1].text:find("No more new") then
          for indexEnd = #tbl, 1, -1 do
-            if tbl[indexEnd][1].text == tildeStr then
+            if tbl[indexEnd][1].text == tildeStr or tbl[indexEnd][1].text:find("There are no") or tbl[indexEnd][1].text:find("Changed") then
                table.move(tbl, indexStart, indexEnd, 1)
                local len = indexEnd - indexStart + 1
                table.move(tbl, #tbl + 1, #tbl*2 - len, len + 1)
@@ -102,6 +103,7 @@ function findBoundaries(tbl)
    end
    return tbl
 end
+
 
 function addToWindow(lines)
    local lines = findBoundaries(lines)
