@@ -25,7 +25,6 @@
 local extras = require "aard_lua_extras"
 require "gmcphelper"
 local snapshotV = tonumber(extras.PackageVersion())
-require 'tprint'
 
 local prefix = GetAlphaOption("script_prefix")
 
