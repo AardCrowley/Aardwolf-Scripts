@@ -38,6 +38,10 @@ end
 
 require 'themed_miniwindows'
 
+fontName = GetAlphaOption("output_font_name")
+fontHeight = GetOption("output_font_height")
+
+
 if not GetVariable("noteShow") then
    SetVariable("noteShow", "true")
    noteShow = GetVariable("noteShow")
@@ -61,10 +65,10 @@ function OnPluginInstall()
     true,                                    -- boolean, optional (default is false), make the text copyable via right-click
     true,                                    -- boolean, optional (default is false), turn detected URLs into clickable links
     true,                                    -- boolean, optional (default is false), automatically wrap text lines that are too wide
-    GetAlphaOption("output_font_name"),      -- string, optional (default is Dina), override the title font name
-    GetOption("output_font_height"),         -- integer, optional (default is 10), override the title font size
-    GetAlphaOption("output_font_name"),      -- string, optional (default is Dina), override the body text font name
-    GetOption("output_font_height"),         -- integer, optional (default is 10), override the body text font size
+    fontName,      -- string, optional (default is Dina), override the title font name
+    fontHeight,         -- integer, optional (default is 10), override the title font size
+    fontName,      -- string, optional (default is Dina), override the body text font name
+    fontHeight,         -- integer, optional (default is 10), override the body text font size
     1000,                                    -- integer, optional (default is 1000), maximum number of text lines to keep
     5,                                       -- integer, optional (default is 5 pixels), space between text and miniwindow frame
     true                                     -- boolean, optional (default is false), true will prevent the window from appearing until you call :show() on it
@@ -104,9 +108,13 @@ function findBoundaries(tbl)
    return tbl
 end
 
-
 function addToWindow(lines)
    local lines = findBoundaries(lines)
+   local strippedLine = strip_colours_from_styles(lines)
+   post = 0
+   if strippedLine:find("Forum") and not post == 0 then
+      post = strippedLine:match("#(%d+)")
+   end
    NotesWin:clear(false)
    NotesWin:add_text(lines, false)
 
@@ -123,7 +131,7 @@ function hyperlinknotes(lines)
       else
          for j,k in ipairs(v) do
             if j == 2 then
-               Hyperlink(prefix .. "Execute('note read " .. string.gsub(k.text, " ", "") .. "')", k.text, "note read " .. string.gsub(k.text, " ", ""), RGBColourToName(k.textcolour), RGBColourToName(k.backcolour))
+               Hyperlink(prefix .. "Execute('note read " .. string.gsub(k.text, " ", "") .. "')", k.text, "note read " .. string.gsub(k.text, " ", ""), RGBColourToName(k.textcolour), RGBColourToName(k.backcolour), false, true)
             else
                ColourTell(RGBColourToName(k.textcolour), RGBColourToName(k.backcolour), k.text)
             end
@@ -163,7 +171,6 @@ function onHelp()
    ColourNote("orange", "", string.format("%s-30s - %s", "notewin <show|hide>", "Shows or hides the note window."))
    ColourNote("orange", "", string.format("%-30s - %s", "notewin clear", "Clears the note window of existing content."))
 end
-
 ]]>
    </script>
 </muclient>
