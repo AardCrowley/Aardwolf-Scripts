@@ -126,7 +126,9 @@ end
 
 function hyperlinknotes(lines)
    for i,v in ipairs(lines) do
-      if i < 5 or i == #lines then
+      if i == 1 then
+         Simulate(stylesToANSI(v) .. ColoursToANSI(" @C(Post numbers are clickable)") .. "\n")
+      elseif i < 5 or i == #lines then
          Simulate(stylesToANSI(v) .. "\n")
       else
          for j,k in ipairs(v) do
