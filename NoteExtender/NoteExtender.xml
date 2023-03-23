@@ -159,7 +159,7 @@ function hyperlinknotes(lines)
    local subj
    for i,v in ipairs(lines) do
       if i == 1 then
-         Simulate(stylesToANSI(v) .. ColoursToANSI(" @C(Post numbers are clickable)") .. "\n")
+         Simulate(stylesToANSI(v) .. ColoursToANSI(" @C(Clickable posts)") .. "\n")
       elseif i <= 4 or i == #lines then
          Simulate(stylesToANSI(v) .. "\n")
       elseif i < #lines then
