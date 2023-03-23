@@ -145,12 +145,12 @@ function shouldHyperlink(str, tbl)
    end
 
    postNo = postNo:gsub("[^%z\1-\127]+", ""):gsub("%s+", "")
-   author = author:gsub("[^%z\1-\127]+", ""):gsub("%s+", "")
-   subject = subject:gsub("[^%z\1-\127]+", ""):gsub("%s+$", "")
-   byteSubj = subject:gsub("%p", function(c) return string.format("\\%d", string.byte(c)) end)
-   str = str:gsub("[^%z\1-\127]+", ""):gsub("%s+$", ""):gsub("%p", function(c) return string.format("\\%d", string.byte(c)) end )
+   author = author:gsub("[^%z\1-\127]+", ""):gsub("%s+$", "")
+   subject = subject:gsub("%s+$", "")
+   compSubj = subject:gsub("[^%w]+", "")
+   str = str:gsub("[^%w]+", "")
 
-   if str:find(postNo) or str:find(author) or str:find(byteSubj) then
+   if str:find(postNo) or str:find(author) or str:find(compSubj) then
       youShould = true
    end
 
