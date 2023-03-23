@@ -25,7 +25,7 @@
 local extras = require "aard_lua_extras"
 require "gmcphelper"
 local snapshotV = tonumber(extras.PackageVersion())
-require 'tprint'
+
 
 local prefix = GetAlphaOption("script_prefix")
 
@@ -65,10 +65,10 @@ function OnPluginInstall()
     true,                                    -- boolean, optional (default is false), make the text copyable via right-click
     true,                                    -- boolean, optional (default is false), turn detected URLs into clickable links
     true,                                    -- boolean, optional (default is false), automatically wrap text lines that are too wide
-    fontName,      -- string, optional (default is Dina), override the title font name
-    fontHeight,         -- integer, optional (default is 10), override the title font size
-    fontName,      -- string, optional (default is Dina), override the body text font name
-    fontHeight,         -- integer, optional (default is 10), override the body text font size
+    fontName,                                -- string, optional (default is Dina), override the title font name
+    fontHeight,                              -- integer, optional (default is 10), override the title font size
+    fontName,                                -- string, optional (default is Dina), override the body text font name
+    fontHeight,                              -- integer, optional (default is 10), override the body text font size
     1000,                                    -- integer, optional (default is 1000), maximum number of text lines to keep
     5,                                       -- integer, optional (default is 5 pixels), space between text and miniwindow frame
     true                                     -- boolean, optional (default is false), true will prevent the window from appearing until you call :show() on it
@@ -123,17 +123,53 @@ function addToWindow(lines)
    NotesWin:show()
 end
 
+function shouldHyperlink(str, tbl)
+   local hyperTbl = {}
+   local youShould = false
+
+   table.insert(hyperTbl, TruncateStyles(tbl, 2, 7))
+   table.insert(hyperTbl, TruncateStyles(tbl, 23, 34))
+   table.insert(hyperTbl, TruncateStyles(tbl, 37, 72))
+
+   for _,v in ipairs(hyperTbl) do
+      for _,w in ipairs(v) do
+         if Hash(w.text):find(Hash(str)) then
+            youShould = true
+            break
+         end
+      end
+   end
+
+   return youShould
+end
+
+function hyperText(tbl)
+   local retStr = ""
+
+   for _, v in ipairs(tbl) do
+      retStr = retStr .. v.text
+   end
+
+   return retStr
+end
 
 function hyperlinknotes(lines)
+   local postNo
+   local author
+   local subj
    for i,v in ipairs(lines) do
       if i == 1 then
          Simulate(stylesToANSI(v) .. ColoursToANSI(" @C(Post numbers are clickable)") .. "\n")
-      elseif i < 5 or i == #lines then
+      elseif i <= 4 or i == #lines then
          Simulate(stylesToANSI(v) .. "\n")
-      else
+      elseif i < #lines then
+         --postNo = v[2].text:gsub(" ", "")
+         postNo = hyperText(TruncateStyles(v, 2, 7)):gsub(" ", "")
+         author = hyperText(TruncateStyles(v, 23, 34)):gsub("%s+$", "")
+         subject = hyperText(TruncateStyles(v, 37, 72)):gsub("%s+$", "")
          for j,k in ipairs(v) do
-            if j == 2 then
-               Hyperlink(prefix .. "Execute('note read " .. string.gsub(k.text, " ", "") .. "')", k.text, "note read " .. string.gsub(k.text, " ", ""), RGBColourToName(k.textcolour), RGBColourToName(k.backcolour), false, true)
+            if shouldHyperlink(k.text, v) then
+               Hyperlink(prefix .. "Execute('note read " .. postNo .. "')", k.text, "Post #" .. postNo .. ": " .. subject .. " (" .. author .. ")", RGBColourToName(k.textcolour), RGBColourToName(k.backcolour), false, true)
             else
                ColourTell(RGBColourToName(k.textcolour), RGBColourToName(k.backcolour), k.text)
             end
