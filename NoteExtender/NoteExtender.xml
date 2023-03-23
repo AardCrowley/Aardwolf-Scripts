@@ -144,8 +144,8 @@ function shouldHyperlink(str, tbl)
       subject = subject .. v.text
    end
 
-   postNo = postNo:gsub("[^%z\1-\127]+", ""):gsub("%s+$", "")
-   author = author:gsub("[^%z\1-\127]+", ""):gsub("%s+$", "")
+   postNo = postNo:gsub("[^%z\1-\127]+", ""):gsub("%s+", "")
+   author = author:gsub("[^%z\1-\127]+", ""):gsub("%s+", "")
    subject = subject:gsub("[^%z\1-\127]+", ""):gsub("%s+$", "")
    byteSubj = subject:gsub("%p", function(c) return string.format("\\%d", string.byte(c)) end)
    str = str:gsub("[^%z\1-\127]+", ""):gsub("%s+$", ""):gsub("%p", function(c) return string.format("\\%d", string.byte(c)) end )
