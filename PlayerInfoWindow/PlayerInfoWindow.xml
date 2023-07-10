@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2023-07-06 10:02:24"
    requires="5.07"
-   version="1.5"
+   version="1.6"
    >
 
 </plugin>
@@ -25,7 +25,7 @@
 
 <aliases>
   <alias
-   match="^((?:finger|whois|sc(?:ore)?)(?:.*)?)$"
+   match="^((?:(?:finger|whois)(?:.*)?)|sc(?:ore)?)$"
    enabled="y"
    regexp="y"
    script="onInfoRequest"
@@ -47,6 +47,7 @@
 
 <script>
 <![CDATA[
+dofile(GetInfo(60) .. "aardwolf_colors.lua")
 local extras = require "aard_lua_extras"
 require "gmcphelper"
 local snapshotV = tonumber(extras.PackageVersion())
@@ -93,12 +94,17 @@ end
 
 function findBoundaries(tbl)
    for indexStart, v in ipairs(tbl) do
-      if v[1].text:find("-------------------") or v[1].text:find("There is no player with that name.") or v[1].text:find("You found nobody online with the name") then
+      if not foundStart then
+         Simulate(stylesToANSI(v))
+      end
+      if v[1].text:find("-------------------") or v[1].text:find("There is no player with that name.") or v[1].text:find("You found nobody online with the name") or v[1].text:find("{scan}") or v[1].text:find("{/scan}") then
+         foundStart = true
          for indexEnd = #tbl, 1, -1 do
             if tbl[indexEnd][1].text:find("-------------------") or tbl[indexEnd][1].text:find("There is no player with that name.") or tbl[indexEnd][1].text:find("You found nobody online with the name") then
                table.move(tbl, indexStart, indexEnd, 1)
                local len = indexEnd - indexStart + 1
                table.move(tbl, #tbl + 1, #tbl*2 - len, len+1)
+               foundStart = false
                return tbl
             end
          end
