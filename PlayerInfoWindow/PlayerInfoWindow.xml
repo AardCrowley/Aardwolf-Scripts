@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2023-07-06 10:02:24"
    requires="5.07"
-   version="1.6"
+   version="1.7"
    >
 
 </plugin>
@@ -92,28 +92,6 @@ function OnPluginInstall()
    )
 end
 
-function findBoundaries(tbl)
-   for indexStart, v in ipairs(tbl) do
-      if not foundStart then
-         Simulate(stylesToANSI(v))
-      end
-      if v[1].text:find("-------------------") or v[1].text:find("There is no player with that name.") or v[1].text:find("You found nobody online with the name") or v[1].text:find("{scan}") or v[1].text:find("{/scan}") then
-         foundStart = true
-         for indexEnd = #tbl, 1, -1 do
-            if tbl[indexEnd][1].text:find("-------------------") or tbl[indexEnd][1].text:find("There is no player with that name.") or tbl[indexEnd][1].text:find("You found nobody online with the name") then
-               table.move(tbl, indexStart, indexEnd, 1)
-               local len = indexEnd - indexStart + 1
-               table.move(tbl, #tbl + 1, #tbl*2 - len, len+1)
-               foundStart = false
-               return tbl
-            end
-         end
-      end
-   end
-
-   return tbl
-end
-
 function onInfoRequest(name, line, wildcards)
    if not WindowInfo("PlayerInfo", 1) then OnPluginInstall() end
 
@@ -122,15 +100,38 @@ function onInfoRequest(name, line, wildcards)
 end
 
 function addToWindow(lines)
-   local slines = findBoundaries(lines)
+   foundStartIdx = 0
    InfoWin:clear(false)
-   if #slines > 0 then
-      InfoWin:add_text(slines, false)
-   else
-      InfoWin:add_text(lines, false)
+
+   for indexStart, v in ipairs(lines) do
+      local vText = v[1].text
+
+      if vText:find("%-+") or vText:find("There is no player with that name%.") or vText:find("You found nobody online with the name '%w+'%.") then
+         foundStartIdx = indexStart
+         break
+      end
    end
-   InfoWin:fit_contents()
-   InfoWin:show()
+
+   if foundStartIdx ~= 0 then
+      for indexEnd = #lines, 1, -1 do
+         vText = lines[indexEnd][1].text
+
+         if vText:find("%-+") or vText:find("There is no player with that name%.") or vText:find("You found nobody online with the name '%w+'%.") then
+            table.move(lines, foundStartIdx, indexEnd, 1)
+            local len = indexEnd - foundStartIdx + 1
+            table.move(lines, #lines + 1, #lines * 2 - len, len + 1)
+            break
+         end
+      end
+
+      if #lines > 0 then
+         InfoWin:add_text(lines, false)
+         InfoWin:fit_contents()
+         InfoWin:show()
+      end
+   else
+      Simulate(stylesToANSI(lines))
+   end
 end
 
 function closeWin()
@@ -138,6 +139,4 @@ function closeWin()
 end
 ]]>
 </script>
-
-
 </muclient>
