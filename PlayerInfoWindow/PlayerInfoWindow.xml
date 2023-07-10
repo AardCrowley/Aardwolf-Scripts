@@ -25,7 +25,7 @@
 
 <aliases>
   <alias
-   match="^((?:(?:finger|whois)(?:.*)?)|sc(?:ore)?)$"
+   match="^((?:(?:fing(?:e|er)?|whois?)(?:.*)?)|sc(?:o|or|ore)?)$"
    enabled="y"
    regexp="y"
    script="onInfoRequest"
