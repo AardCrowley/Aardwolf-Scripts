@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2023-07-06 10:02:24"
    requires="5.07"
-   version="1.7"
+   version="1.8"
    >
 
 </plugin>
@@ -25,7 +25,7 @@
 
 <aliases>
   <alias
-   match="^((?:(?:fing(?:e|er)?|whois?)(?:.*)?)|sc(?:o|or|ore)?)$"
+   match="^((?:(?:fing(?:e|er)?|whois?|sc(?:o|or|ore|a|an)?)(?:.*)?))$"
    enabled="y"
    regexp="y"
    script="onInfoRequest"
@@ -106,8 +106,8 @@ function addToWindow(lines)
    for indexStart, v in ipairs(lines) do
       local vText = v[1].text
 
-      if vText:find("%-+") or vText:find("There is no player with that name%.") or vText:find("You found nobody online with the name '%w+'%.") then
-         foundStartIdx = indexStart
+      if vText:find("%-+") or vText:find("There is no player with that name%.") or vText:find("You found nobody online with the name '%w+'%.") or vText == "{scan}" then
+         foundStartIdx = (vText ~= "{scan}" and indexStart or indexStart + 1)
          break
       end
    end
@@ -116,9 +116,10 @@ function addToWindow(lines)
       for indexEnd = #lines, 1, -1 do
          vText = lines[indexEnd][1].text
 
-         if vText:find("%-+") or vText:find("There is no player with that name%.") or vText:find("You found nobody online with the name '%w+'%.") then
-            table.move(lines, foundStartIdx, indexEnd, 1)
-            local len = indexEnd - foundStartIdx + 1
+         if vText:find("%-+") or vText:find("There is no player with that name%.") or vText:find("You found nobody online with the name '%w+'%.") or vText == "{/scan}" then
+            foundEndIdx = (vText ~= "{/scan}" and indexEnd or indexEnd - 1)
+            table.move(lines, foundStartIdx, foundEndIdx, 1)
+            local len = foundEndIdx - foundStartIdx + 1
             table.move(lines, #lines + 1, #lines * 2 - len, len + 1)
             break
          end
