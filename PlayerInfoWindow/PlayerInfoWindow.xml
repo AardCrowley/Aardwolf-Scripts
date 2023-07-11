@@ -15,7 +15,7 @@
    save_state="y"
    date_written="2023-07-06 10:02:24"
    requires="5.07"
-   version="1.8"
+   version="1.9"
    >
 
 </plugin>
@@ -86,7 +86,7 @@ function OnPluginInstall()
       fontHeight,
       fontName,
       fontHeight,
-      30,
+      1000,
       5,
       true
    )
