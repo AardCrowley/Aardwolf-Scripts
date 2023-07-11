@@ -25,7 +25,7 @@
 
 <aliases>
   <alias
-   match="^((?:(?:fing(?:e|er)?|whois?|sc(?:o|or|ore|a|an)?)(?:.*)?))$"
+   match="^((?:(?:fing(?:e|er)?|whois?|sc(?:o|or|ore|a|an)?)(?: .*)?))$"
    enabled="y"
    regexp="y"
    script="onInfoRequest"
