@@ -175,7 +175,7 @@ function createWindow()
     table.insert(
         clockWin.menu_handlers,
             function()
-                wantedFont = utils.fontpicker()
+                wantedFont = utils.fontpicker(font_name, font_size)
                 SetVariable("font_name", wantedFont.name)
                 font_name = wantedFont.name
                 SetVariable("font_size", wantedFont.size)
