@@ -34,7 +34,7 @@
         </alias>
         <alias enabled="y" match="aardclock help" script="onHelp" sequence="100">
         </alias>
-        <alias enabled="y" match="^aardclock (?:hide|off|on|show)$" script="winShow" sequence="100" regexp="y">
+        <alias enabled="y" match="^aardclock (?:(hide|off|on|show))$" script="winShow" sequence="100" regexp="y">
         </alias>
     </aliases>
 
@@ -583,11 +583,13 @@ function onHelp()
     ColourNote("orange", "", "aardlock help   -- what you're reading now...")
 end
 
-function winShow()
-   if WindowInfo(win, 6) == "true" then
+function winShow(name, line, wildcards)
+   local param = wildcards[1]
+   if param == "hide" or param == "off" then
       clockWin:hide()
    else
       clockWin:show()
+   end
 end
 ]]>
     </script>
