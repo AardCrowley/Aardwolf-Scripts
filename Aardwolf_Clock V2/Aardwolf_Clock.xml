@@ -581,7 +581,7 @@ function onHelp()
     ColourNote("orange", "", "aardclock time   -- force an update of time, useful for disconnections and reboots")
     ColourNote("orange", "", "aardclock (show|on|hide|off) -- Shows or hides the clock")
     ColourNote("orange", "", "aardclock update -- automatically update the plugin when new versions come out")
-    ColourNote("orange", "", "aardlock help   -- what you're reading now...")
+    ColourNote("orange", "", "aardclock help   -- what you're reading now...")
 end
 
 function winShow(name, line, wildcards)
