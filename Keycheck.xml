@@ -131,14 +131,12 @@ end
 
 function processKey(name, line, wildcards)
    if line == "{/keyring}" then keyEnd() return end
-   local parts= {}
-   keyNameLen = 0
 
-   for part in line:gmatch("([^,]+)") do
-      table.insert(parts, part)
-   end
+   local keyID, keyName, keyExpiry = line:match("^(%d+),[^,]*,(.-),[^,]+,[^,]+,[^,]+,[^,]+,(.*)$")
 
-   local keyID, keyName, keyExpiry = tonumber(parts[1]), table.concat(parts, ",", 3, #parts-5), (parts[#parts] == "-1" and 0 or tonumber(parts[#parts]))
+   keyExpiry = tonumber(keyExpiry)
+
+   if keyExpiry == -1 then keyExpiry = 0 end
 
    if keyExpiry > 0 then
       table.insert(keyringList, {keyID = keyID, keyName = keyName, keyExpiry = keyExpiry})
