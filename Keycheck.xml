@@ -74,16 +74,23 @@
 <![CDATA[
 dofile(GetInfo(60) .. "aardwolf_colors.lua")
 require 'themed_miniwindows'
-require 'tprint'
+require 'serialize'
+
+if GetVariable("keyAreas") then
+   assert(loadstring(GetVariable("keyAreas")))()
+else
+   keyAreas = {}
+   SetVariable("keyAreas", serialize.save("keyAreas"))
+end
 
 local keyringList = {}
 local fName, fSize = GetAlphaOption("output_font_name"), GetOption("output_font_height")
 
 
-local keyHeader = "@wKey ID        Key Name                                  Expiry@w"
-local keyBreak = "@G------------  ----------------------------------------  --------------------@w"
+local keyHeader = "@wKey ID        Key Name                                  Expiry                Area@w"
+local keyBreak = "@G------------  ----------------------------------------  --------------------  -------------------------@w"
 
-local keyString = "%-12d  %s%s"
+local keyString = "%-12d  %s%s  %s"
 
 function convertTime(totalSeconds)
     local secondsInADay = 86400
@@ -112,10 +119,10 @@ function keyringStart(name, line, wildcards)
       "center",
       true,
       true,
+      false,
       true,
-      false,
-      false,
-      false,
+      true,
+      true,
       false,
       fName, fSize, fName, fSize,
       1000,
@@ -154,7 +161,11 @@ function keyEnd()
    keyringWin:add_text(keyBreak)
 
    for _, key in ipairs(keyringList) do
-      keyringWin:add_text(keyString:format(key.keyID, key.keyName .. string.rep(" ", 42-#strip_colours(key.keyName)), convertTime(key.keyExpiry)))
+      stopLoc = #strip_colours(key.keyName) + 14
+      local links = {{label = "Set area for key", start = 14, stop = stopLoc, text = "a='" .. key.keyName .. "';DoAfterSpecial(.1, 'addArea(a)', 12)"}}
+      local area = keyAreas[key.keyName] or "Unknown"
+      local addLine =keyString:format(key.keyID, key.keyName .. string.rep(" ", 42-#strip_colours(key.keyName)), convertTime(key.keyExpiry), area)
+      keyringWin:add_text(addLine, true, links)
    end
 
    keyringWin:fit_contents()
@@ -165,6 +176,23 @@ function keyEnd()
    EnableTrigger("disableKeys", false)
    EnableTrigger("keyStart", false)
 end
+
+function addArea(keyName)
+   if not keyAreas[keyName] then
+      areaName = utils.inputbox("What area is this key from?", "Area Name")
+   else
+      utils.msgbox("This key name is already associated with an area. If you wish to override it, do so at the next prompt.")
+      areaName = utils.inputbox("What area is this key from?", "Area Name", keyAreas[keyName])
+   end
+
+   if areaName then
+      keyAreas[keyName] = areaName
+   end
+
+   SetVariable("keyAreas", serialize.save("keyAreas"))
+   Execute("keycheck")
+end
+
 ]]>
 </script>
 
