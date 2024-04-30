@@ -119,13 +119,13 @@ function keyringStart(name, line, wildcards)
       "center",
       true,
       true,
-      false,
+      true,
       true,
       true,
       true,
       false,
       fName, fSize, fName, fSize,
-      1000,
+      20,
       5,
       true,
       false
@@ -168,7 +168,7 @@ function keyEnd()
       keyringWin:add_text(addLine, true, links)
    end
 
-   keyringWin:fit_contents()
+   keyringWin:fit_contents(1200, 500)
    keyringWin:set_scroll(1)
    keyringWin:show()
 
