@@ -162,7 +162,7 @@ function keyEnd()
 
    for _, key in ipairs(keyringList) do
       stopLoc = #strip_colours(key.keyName) + 14
-      local links = {{label = "Set area for key", start = 15, stop = stopLoc, text = "a='" .. key.keyName .. "';DoAfterSpecial(.1, 'addArea(a)', 12)"}}
+      local links = {{label = "Set area for key", start = 15, stop = stopLoc, text = "a='" .. key.keyName:gsub("'", "__") .. "';DoAfterSpecial(.1, 'addArea(a)', 12)"}}
       local area = keyAreas[key.keyName] or "Unknown"
       local addLine =keyString:format(key.keyID, key.keyName .. string.rep(" ", 42-#strip_colours(key.keyName)), convertTime(key.keyExpiry), area)
       keyringWin:add_text(addLine, true, links)
@@ -178,6 +178,7 @@ function keyEnd()
 end
 
 function addArea(keyName)
+   keyName = keyName:gsub("__", "'")
    if not keyAreas[keyName] then
       areaName = utils.inputbox("What area is this key from?", "Area Name")
    else
@@ -186,7 +187,7 @@ function addArea(keyName)
    end
 
    if areaName then
-      keyAreas[keyName] = areaName
+      keyAreas[keyName] = (areaName ~= "" and areaName or "Unknown")
    end
 
    SetVariable("keyAreas", serialize.save("keyAreas"))
