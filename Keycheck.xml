@@ -125,7 +125,7 @@ function keyringStart(name, line, wildcards)
       true,
       false,
       fName, fSize, fName, fSize,
-      20,
+      500,
       5,
       true,
       false
