@@ -32,7 +32,7 @@
     <!--  Timers  -->
 
     <timers>
-        <timer enabled="n" script="onTimer" second="0.25" offset_second="0.00" name="clockTimer" enabled="y">
+        <timer enabled="n" script="onTimer" second="0.25" offset_second="0.00" name="clockTimer" enabled="n">
 
         </timer>
     </timers>
