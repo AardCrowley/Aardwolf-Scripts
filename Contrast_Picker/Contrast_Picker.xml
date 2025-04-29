@@ -41,13 +41,9 @@
 
 <script>
 <![CDATA[
--- APCA Contrast Plugin for MUSHClient/Aardwolf
--- “Next-gen” perceptual contrast using the W3C APCA algorithm v0.0.98G
--- Saves the hassle of WCAG ratios and gives you true perceptual legibility scores
+-- APCA Contrast Plugin
 
---[[-----------------------
-  1) HTML color list
--------------------------]]
+--[[ 1) HTML color list ]]
 local color_table = {
   "black","navy","darkblue","mediumblue","blue","royalblue","cornflowerblue",
   "deepskyblue","lightskyblue","skyblue","lightblue","powderblue","lightsteelblue",
@@ -67,9 +63,7 @@ local color_table = {
   "darkviolet","blueviolet","purple","indigo"
 }
 
---[[-----------------------
-  2) APCA constants & helpers
--------------------------]]
+--[[ 2) APCA constants & helpers ]]
 local SA98G = {
   mainTRC      = 2.4,
   sRco         = 0.2126729,
@@ -79,14 +73,12 @@ local SA98G = {
   normTXT      = 0.57,
   revBG        = 0.62,
   revTXT       = 0.65,
-  blkThrs      = 0.022,
-  blkClmp      = 1.414,
-  scaleBoW     = 1.14,
-  scaleWoB     = 1.14,
   loBoWoffset  = 0.027,
   loWoBoffset  = 0.027,
   deltaYmin    = 0.0005,
   loClip       = 0.1,
+  scaleBoW     = 1.14,
+  scaleWoB     = 1.14,
 }
 
 local function clamp(x, lo, hi)
@@ -95,7 +87,7 @@ local function clamp(x, lo, hi)
   return x
 end
 
--- unpack 24-bit integer → r,g,b
+-- unpack a 24-bit ColourNameToRGB() integer into r,g,b
 local function unpackRGB(n)
   local b = n % 256; n = math.floor(n/256)
   local g = n % 256; n = math.floor(n/256)
@@ -103,15 +95,17 @@ local function unpackRGB(n)
   return r, g, b
 end
 
--- sRGB int or {r,g,b,a}? → perceptual Y [0–1]
+-- sRGB int or {r,g,b,a} → perceptual Y [0..1]
 local function sRGBtoY(c)
   local r,g,b
-  if type(c)=="table" then
-    r,g,b = c[1],c[2],c[3]
+  if type(c) == "table" then
+    r,g,b = c[1], c[2], c[3]
   else
     r,g,b = unpackRGB(tonumber(c))
   end
-  local rn,gn,bn = (r/255)^SA98G.mainTRC, (g/255)^SA98G.mainTRC, (b/255)^SA98G.mainTRC
+  local rn = (r/255)^SA98G.mainTRC
+  local gn = (g/255)^SA98G.mainTRC
+  local bn = (b/255)^SA98G.mainTRC
   return SA98G.sRco*rn + SA98G.sGco*gn + SA98G.sBco*bn
 end
 
@@ -126,98 +120,104 @@ local function alphaBlend(fg,bg)
   }
 end
 
--- APCA contrast: txtY & bgY in [0–1], returns signed Lᶜ
+-- APCA contrast: txtY & bgY in [0..1], returns signed Lᶜ
 local function APCAcontrast(txtY, bgY, places)
   txtY, bgY = clamp(txtY,0,1.1), clamp(bgY,0,1.1)
-  if math.abs(bgY-txtY) < SA98G.deltaYmin then return 0 end
+  if math.abs(bgY - txtY) < SA98G.deltaYmin then return 0 end
 
   local out
   if bgY > txtY then
-    out = ( bgY^SA98G.normBG - txtY^SA98G.normTXT ) * SA98G.scaleBoW
+    out = (bgY^SA98G.normBG - txtY^SA98G.normTXT) * SA98G.scaleBoW
     if bgY < SA98G.loClip then out = out - SA98G.loBoWoffset end
   else
-    out = ( bgY^SA98G.revBG - txtY^SA98G.revTXT ) * SA98G.scaleWoB
+    out = (bgY^SA98G.revBG - txtY^SA98G.revTXT) * SA98G.scaleWoB
     if txtY < SA98G.loClip then out = out + SA98G.loWoBoffset end
     out = -out
   end
 
   if places and places >= 0 then
-    out = tonumber( string.format("%."..places.."f", out) )
+    out = tonumber(string.format("%."..places.."f", out))
   end
   return out
 end
 
--- convenience: accept ints or {r,g,b,a}
+-- convenience: takes two 24-bit ints or RGBA tables, handles alpha, returns Lᶜ
 local function calcAPCA(fg, bg, places)
   local fgC, bgC = fg, bg
-  if type(fgC)=="table" and fgC[4] then fgC = alphaBlend(fgC,bgC) end
-  local Yfg, Ybg = sRGBtoY(fgC), sRGBtoY(bgC)
-  return APCAcontrast(Yfg, Ybg, places or -1)
+  if type(fgC)=="table" and fgC[4] then fgC = alphaBlend(fgC, bgC) end
+  return APCAcontrast( sRGBtoY(fgC), sRGBtoY(bgC), places or -1 )
 end
 
---[[-----------------------
-  3) Build contrast table once
--------------------------]]
+--[[ 3) Precompute color codes ]]
 local contrast_colors = {}
 for _, name in ipairs(color_table) do
-  local code = ColourNameToRGB(name)
-  contrast_colors[#contrast_colors+1] = { name = name, code = code }
+  contrast_colors[#contrast_colors+1] = {
+    name = name,
+    code = ColourNameToRGB(name)
+  }
 end
 
---[[-----------------------
-  4) Main “contrast” command
--------------------------]]
+--[[ 4) The improved contrast command ]]
 local function checkColorAPCA(fg_name, start_i, end_i)
-  local fg = fg_name:lower()
+  local fg = (fg_name or ""):lower()
   local fg_code = ColourNameToRGB(fg)
-  if fg_code == 0 then
-    Note("Unknown color: "..fg_name)
+  if fg == "" or fg_code == 0 then
+    Note("Unknown or missing color: "..tostring(fg_name))
     return
   end
 
+  -- build list with signed contrast and absolute score
   local list = {}
   for _, entry in ipairs(contrast_colors) do
-    local c = calcAPCA(fg_code, entry.code)
-    list[#list+1] = { color = entry.name, contrast = c, score = math.abs(c) }
+    local c = calcAPCA(fg_code, entry.code, 2)
+    list[#list+1] = {
+      bg_name  = entry.name,
+      contrast = c,
+      score    = math.abs(c),
+    }
   end
 
+  -- sort by descending absolute contrast
   table.sort(list, function(a,b) return a.score > b.score end)
 
+  -- sanitize slice bounds
   local cnt = #list
-  start_i = tonumber(start_i) or 1
-  end_i   = tonumber(end_i)   or math.min(20, cnt)
-  start_i = clamp(start_i, 1, cnt)
-  end_i   = clamp(end_i, start_i, cnt)
+  start_i = clamp(tonumber(start_i) or 1, 1, cnt)
+  end_i   = clamp(tonumber(end_i)   or math.min(20, cnt), start_i, cnt)
 
-  Note("APCA rankings for “"..fg.."”:")
-  for i=start_i, end_i do
+  Note("APCA contrast rankings for “"..fg.."”:")
+  for i = start_i, end_i do
     local e = list[i]
-    local sign = (e.contrast>0) and "dark-on-light" or "light-on-dark"
-    ColourNote(fg, e.color,
-      string.format("%2d: %7.2f (%s)", i, e.contrast, sign)
+    local mode = (e.contrast > 0) and "dark-on-light" or "light-on-dark"
+    -- report the background name explicitly:
+    ColourNote(
+      fg,
+      e.bg_name,
+      string.format(
+        "%2d) on %-20s  L = %6.2f (%s)",
+        i, e.bg_name, e.contrast, mode
+      )
     )
   end
 end
 
---[[-----------------------
-  5) Hook into MUSHClient
--------------------------]]
+--[[ 5) Hook up to MUSHClient ]]
 function onCommand(name, line, args)
   if args[1] and args[1]:upper()=="HELP" then
     Note("APCA Contrast Help:")
-    Note(" contrast help                – this text")
-    Note(" contrast <fg>                – top 20 backgrounds")
-    Note(" contrast <fg> <start> <end>  – show ranks start–end")
-    Note("*<fg> must be a standard HTML color name")
+    Note(" contrast help                this text")
+    Note(" contrast <fg>                top 20 backgrounds")
+    Note(" contrast <fg> <start> <end>  show ranks start–end")
+    Note("* <fg> must be a standard HTML color name")
   else
-    checkColorAPCA(args[1] or "", args[2], args[3])
+    checkColorAPCA(args[1], args[2], args[3])
   end
 end
 
 function OnPluginInstall()
   if not GetVariable("apca_shown") then
-    Note("Type “contrast help” for APCA-based contrast rankings.")
-    SetVariable("apca_shown","1")
+    Note("Type “contrast help” for next-gen APCA-based contrast rankings.")
+    SetVariable("apca_shown", "1")
   end
 end
 
