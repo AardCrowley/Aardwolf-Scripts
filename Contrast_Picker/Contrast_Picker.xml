@@ -41,265 +41,186 @@
 
 <script>
 <![CDATA[
-color_table = {
+-- APCA Contrast Plugin for MUSHClient/Aardwolf
+-- “Next-gen” perceptual contrast using the W3C APCA algorithm v0.0.98G
+-- Saves the hassle of WCAG ratios and gives you true perceptual legibility scores
 
-        "pink", 
-        "lightpink", 
-        "hotpink", 
-        "deeppink", 
-        "palevioletred", 
-        "mediumvioletred",
-        "lightsalmon", 
-        "salmon", 
-        "darksalmon", 
-        "lightcoral", 
-        "indianred", 
-        "crimson", 
-        "firebrick", 
-        "darkred", 
-        "red",
-        "orangered", 
-        "tomato", 
-        "coral", 
-        "darkorange", 
-        "orange",
-        "yellow", 
-        "lightyellow", 
-        "lemonchiffon", 
-        "lightgoldenrodyellow", 
-        "papayawhip", 
-        "moccasin", 
-        "peachpuff", 
-        "palegoldenrod", 
-        "khaki", 
-        "darkkhaki", 
-        "gold",
-        "cornsilk",
-        "blanchedalmond",
-        "bisque",
-        "navajowhite",
-        "wheat",
-        "burlywood",
-        "tan",
-        "rosybrown",
-        "sandybrown",
-        "goldenrod",
-        "darkgoldenrod",
-        "peru",
-        "chocolate",
-        "saddlebrown",
-        "sienna",
-        "brown",
-        "maroon",
-        "lavender",
-        "thistle",
-        "plum",
-        "violet",
-        "orchid",
-        "fuchsia",
-        "magenta",
-        "mediumorchid",
-        "mediumpurple",
-        "blueviolet",
-        "darkviolet",
-        "darkorchid",
-        "darkmagenta",
-        "purple",
-        "indigo",
-        "slateblue",
-        "darkslateblue",
-        "mediumslateblue",
-        "greenyellow",
-        "chartreuse",
-        "lawngreen",
-        "lime",
-        "limegreen",
-        "palegreen",
-        "lightgreen",
-        "mediumspringgreen",
-        "springgreen",
-        "mediumseagreen",
-        "seagreen",
-        "forestgreen",
-        "green",
-        "darkgreen",
-        "yellowgreen",
-        "olivedrab",
-        "olive",
-        "darkolivegreen",
-        "mediumaquamarine",
-        "darkseagreen",
-        "lightseagreen",
-        "darkcyan",
-        "teal",
-        "aqua",
-        "cyan",
-        "lightcyan",
-        "paleturquoise",
-        "aquamarine",
-        "turquoise",
-        "mediumturquoise",
-        "darkturquoise",
-        "cadetblue",
-        "steelblue",
-        "lightsteelblue",
-        "powderblue",
-        "lightblue",
-        "skyblue",
-        "lightskyblue",
-        "deepskyblue",
-        "dodgerblue",
-        "cornflowerblue",
-        "mediumslateblue",
-        "royalblue",
-        "blue",
-        "mediumblue",
-        "darkblue",
-        "navy",
-        "midnightblue",
-        "white",
-        "snow",
-        "honeydew",
-        "mintcream",
-        "azure",
-        "aliceblue",
-        "ghostwhite",
-        "whitesmoke",
-        "seashell",
-        "beige",
-        "oldlace",
-        "floralwhite",
-        "ivory",
-        "antiquewhite",
-        "linen",
-        "lavenderblush",
-        "mistyrose",
-        "gainsboro",
-        "lightgrey",
-        "silver",
-        "darkgray",
-        "gray",
-        "dimgray",
-        "lightslategray",
-        "slategray",
-        "darkslategray",
-        "black"
+--[[-----------------------
+  1) HTML color list
+-------------------------]]
+local color_table = {
+  "black","navy","darkblue","mediumblue","blue","royalblue","cornflowerblue",
+  "deepskyblue","lightskyblue","skyblue","lightblue","powderblue","lightsteelblue",
+  "steelblue","cadetblue","darkcyan","teal","aqua","cyan","lightcyan",
+  "mediumspringgreen","springgreen","mediumseagreen","seagreen","forestgreen",
+  "green","darkgreen","lawngreen","chartreuse","greenyellow","lime","limegreen",
+  "palegreen","lightgreen","darkolivegreen","olivedrab","yellow","lightyellow",
+  "lemonchiffon","lightgoldenrodyellow","papayawhip","moccasin","peachpuff",
+  "palegoldenrod","khaki","darkkhaki","gold","orange","darkorange","coral",
+  "tomato","orangered","red","darkred","firebrick","crimson","indianred",
+  "lightcoral","darksalmon","salmon","lightsalmon","sandybrown","peru","chocolate",
+  "darkgoldenrod","goldenrod","lightgray","silver","gray","darkgray","dimgray",
+  "lightslategray","slategray","darkslategray","white","snow","ghostwhite",
+  "whitesmoke","gainsboro","floralwhite","oldlace","linen","antiquewhite","beige",
+  "ivory","azure","aliceblue","lavender","lavenderblush","mistyrose","thistle",
+  "plum","violet","orchid","fuchsia","magenta","mediumorchid","darkorchid",
+  "darkviolet","blueviolet","purple","indigo"
 }
 
-function lumRGB(s)
-    local red, green, blue, l = 0, 0, 0, 0
+--[[-----------------------
+  2) APCA constants & helpers
+-------------------------]]
+local SA98G = {
+  mainTRC      = 2.4,
+  sRco         = 0.2126729,
+  sGco         = 0.7151522,
+  sBco         = 0.0721750,
+  normBG       = 0.56,
+  normTXT      = 0.57,
+  revBG        = 0.62,
+  revTXT       = 0.65,
+  blkThrs      = 0.022,
+  blkClmp      = 1.414,
+  scaleBoW     = 1.14,
+  scaleWoB     = 1.14,
+  loBoWoffset  = 0.027,
+  loWoBoffset  = 0.027,
+  deltaYmin    = 0.0005,
+  loClip       = 0.1,
+}
 
-    red = s%256
-    s = math.floor(s/256)
-    green = s%256
-    s = math.floor(s/256)
-    blue = s%256
-
-    red = lumForm(red)
-    green = lumForm(green)
-    blue = lumForm(blue)
-
-    l = (0.2126*red) + (0.7152*green) + (0.0722*blue)
-
-    return l
+local function clamp(x, lo, hi)
+  if x < lo then return lo end
+  if x > hi then return hi end
+  return x
 end
 
-function lumForm(s)
-    local s = tonumber(s)
-    s = s/255
-
-    if s <= 0.03928 then
-        s = s/12.92
-    else
-        s = ((s+0.055)/1.055)^2.4
-    end
-
-    return s
+-- unpack 24-bit integer → r,g,b
+local function unpackRGB(n)
+  local b = n % 256; n = math.floor(n/256)
+  local g = n % 256; n = math.floor(n/256)
+  local r = n % 256
+  return r, g, b
 end
 
-function contrastCheck(a, b)
-    local a, b, s = tonumber(a), tonumber(b), 0
-
-    if a > b then
-        s = (a + 0.05)/(b + 0.05)
-    else
-        s = (b + 0.05)/(a + 0.05)
-    end
-
-    return s
+-- sRGB int or {r,g,b,a}? → perceptual Y [0–1]
+local function sRGBtoY(c)
+  local r,g,b
+  if type(c)=="table" then
+    r,g,b = c[1],c[2],c[3]
+  else
+    r,g,b = unpackRGB(tonumber(c))
+  end
+  local rn,gn,bn = (r/255)^SA98G.mainTRC, (g/255)^SA98G.mainTRC, (b/255)^SA98G.mainTRC
+  return SA98G.sRco*rn + SA98G.sGco*gn + SA98G.sBco*bn
 end
 
-function checkColor(s, b, e)
-    local max = 0
-    local b, e = tonumber(b), tonumber(e)
-    local ctable = {}
-    local sortcolors = {}
-    local l = lumRGB(ColourNameToRGB(s))
-
-    for _,v in ipairs(color_table) do
-        local ctrast = contrastCheck(l, lumRGB(ColourNameToRGB(v)))
-
-        if ctrast > 1 then
-            table.insert(ctable, {color = v, contrast = ctrast})
-        end
-    end
-
-    table.sort(ctable, function(a,b) return a.contrast > b.contrast end)
-
-    if b == "" or b == nil then b = 1 end
-    if e == "" or e == nil then e = 20 end
-    if e > #ctable then
-        if b > e then
-            b = 1
-            e = #ctable
-        else
-            e = #ctable
-        end
-    end
-    if b > e then 
-        if e < 21 then 
-            b = 1
-        else
-            b = e - 20 
-        end
-    end
-    Note("Showing best matches for " .. s .. ":")
-    if #ctable > 0 then
-        for i = b,e do
-            ColourNote(s, ctable[i].color, i .. " - Sample text using " .. s .. " on " .. ctable[i].color .. " background. (" .. string.format("%.2f", ctable[i].contrast) .. ":1)")
-        end
-    else
-        ColourNote(s, "", "Sorry, " .. s .. " does not pair well with any background, except maybe black.")
-    end
+-- blend fg {r,g,b,a} over bg {r,g,b,a}
+local function alphaBlend(fg,bg)
+  local a = clamp(fg[4] or 1,0,1)
+  return {
+    fg[1]*a + bg[1]*(1-a),
+    fg[2]*a + bg[2]*(1-a),
+    fg[3]*a + bg[3]*(1-a),
+    1
+  }
 end
 
-function onCommand(name, line, arg)
-    if arg[1]:upper() == "HELP" then
-        onHelp()
-    else
-        checkColor(arg[1], arg[2], arg[3])
-    end
+-- APCA contrast: txtY & bgY in [0–1], returns signed Lᶜ
+local function APCAcontrast(txtY, bgY, places)
+  txtY, bgY = clamp(txtY,0,1.1), clamp(bgY,0,1.1)
+  if math.abs(bgY-txtY) < SA98G.deltaYmin then return 0 end
+
+  local out
+  if bgY > txtY then
+    out = ( bgY^SA98G.normBG - txtY^SA98G.normTXT ) * SA98G.scaleBoW
+    if bgY < SA98G.loClip then out = out - SA98G.loBoWoffset end
+  else
+    out = ( bgY^SA98G.revBG - txtY^SA98G.revTXT ) * SA98G.scaleWoB
+    if txtY < SA98G.loClip then out = out + SA98G.loWoBoffset end
+    out = -out
+  end
+
+  if places and places >= 0 then
+    out = tonumber( string.format("%."..places.."f", out) )
+  end
+  return out
 end
 
-function onHelp()
-    Note("Contrast Generator Help:")
-    Note("contrast help                  - Brings up this help file")
-    Note("contrast <color>               - Returns the top 20 contrast ratios")
-    Note("contrast <color> <num1> <num2> - Returns contrast ratios ranked num1 through num2")
-    Note("*<color> must be html color name (e.g. aliceblue, yellow, darkgreen, etc.)")
-    Note("")
-    Note("This plugin helps you decide the best contrasting colors by comparing")
-    Note("the luminance values and returning a ratio. Ratios are ranked from 1:1")
-    Note("to 21:1. The higher the ratio, the better the contrast, thus the better")
-    Note("your ability to read the text will be.")
+-- convenience: accept ints or {r,g,b,a}
+local function calcAPCA(fg, bg, places)
+  local fgC, bgC = fg, bg
+  if type(fgC)=="table" and fgC[4] then fgC = alphaBlend(fgC,bgC) end
+  local Yfg, Ybg = sRGBtoY(fgC), sRGBtoY(bgC)
+  return APCAcontrast(Yfg, Ybg, places or -1)
+end
+
+--[[-----------------------
+  3) Build contrast table once
+-------------------------]]
+local contrast_colors = {}
+for _, name in ipairs(color_table) do
+  local code = ColourNameToRGB(name)
+  contrast_colors[#contrast_colors+1] = { name = name, code = code }
+end
+
+--[[-----------------------
+  4) Main “contrast” command
+-------------------------]]
+local function checkColorAPCA(fg_name, start_i, end_i)
+  local fg = fg_name:lower()
+  local fg_code = ColourNameToRGB(fg)
+  if fg_code == 0 then
+    Note("Unknown color: "..fg_name)
+    return
+  end
+
+  local list = {}
+  for _, entry in ipairs(contrast_colors) do
+    local c = calcAPCA(fg_code, entry.code)
+    list[#list+1] = { color = entry.name, contrast = c, score = math.abs(c) }
+  end
+
+  table.sort(list, function(a,b) return a.score > b.score end)
+
+  local cnt = #list
+  start_i = tonumber(start_i) or 1
+  end_i   = tonumber(end_i)   or math.min(20, cnt)
+  start_i = clamp(start_i, 1, cnt)
+  end_i   = clamp(end_i, start_i, cnt)
+
+  Note("APCA rankings for “"..fg.."”:")
+  for i=start_i, end_i do
+    local e = list[i]
+    local sign = (e.contrast>0) and "dark-on-light" or "light-on-dark"
+    ColourNote(fg, e.color,
+      string.format("%2d: %7.2f (%s)", i, e.contrast, sign)
+    )
+  end
+end
+
+--[[-----------------------
+  5) Hook into MUSHClient
+-------------------------]]
+function onCommand(name, line, args)
+  if args[1] and args[1]:upper()=="HELP" then
+    Note("APCA Contrast Help:")
+    Note(" contrast help                – this text")
+    Note(" contrast <fg>                – top 20 backgrounds")
+    Note(" contrast <fg> <start> <end>  – show ranks start–end")
+    Note("*<fg> must be a standard HTML color name")
+  else
+    checkColorAPCA(args[1] or "", args[2], args[3])
+  end
 end
 
 function OnPluginInstall()
-    if not GetVariable("already_sent") then
-        onHelp()
-        SetVariable("already_sent", "true")
-    end
+  if not GetVariable("apca_shown") then
+    Note("Type “contrast help” for APCA-based contrast rankings.")
+    SetVariable("apca_shown","1")
+  end
 end
+
 
 ]]>
 </script>
