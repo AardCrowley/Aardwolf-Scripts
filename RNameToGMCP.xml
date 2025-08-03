@@ -11,11 +11,11 @@
    author="Crowley"
    id="8a7ff1c8cf6e889324b26e7e"
    language="Lua"
-   purpose="Displays GMCP room ID"
+   purpose="Displays GMCP room ID and area keyword"
    save_state="y"
    date_written="2021-10-05 10:41:05"
    requires="4.80"
-   version="1.0"
+   version="1.1"
    >
 
 </plugin>
@@ -45,6 +45,18 @@
 		SetVariable("idEnabled", tostring(idEnabled))
 		ColourNote("white", "blue", "Room IDs are now " .. (tostring(idEnabled) == "true" and "enabled" or "disabled") .. "!")</send>
   </alias>
+
+	<alias
+	enabled="y"
+	keep_evaluating="y"
+	match="roomarea"
+	send_to="12"
+	sequence="100"
+	>
+	<send>areaEnabled = not areaEnabled
+		SetVariable("areaEnabled", tostring(areaEnabled))
+		ColourNote("white", "blue", "Room area is now " .. (tostring(areaEnabled) == "true" and "enabled" or "disabled") .. "!")</send>
+	</alias>
 </aliases>
 
 <!--  Script  -->
@@ -55,6 +67,7 @@
 require "gmcphelper"
 
 idEnabled = GetVariable("idEnabled") or "true"
+areaEnabled = GetVariable("areaEnabled") or "true"
 
 TSRtable = {}
 
@@ -67,6 +80,16 @@ function OnPluginBroadcast(msg, id, name, text)
 					RGBColourToName (v.backcolour),
 					v.text)
 				    break;
+				end
+			end
+			if tostring(areaEnabled) == "true" then
+				local areaKeyword = gmcp("room.info.zone")
+				if areaKeyword and areaKeyword ~= "" then
+					ColourTell("black", "black", " ")
+					Hyperlink ("mapper goto 32418;runto " .. areaKeyword,
+									"[" .. areaKeyword .. "]",
+									"Run to " .. areaKeyword .. "",
+									"cyan", "black", 0)
 				end
 			end
 			if tostring(idEnabled) == "true" then
