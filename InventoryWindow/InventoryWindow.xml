@@ -1,0 +1,2485 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE muclient>
+<!-- Plugin "InventoryWindow": one self-contained file: triggers, aliases and all code are in here. -->
+
+<muclient>
+<plugin
+   name="InventoryWindow"
+   author="Crowley"
+   id="e41c7a09d36b4f58a2b07c93"
+   language="Lua"
+   purpose="Inventory, worn gear and bags in one window"
+   save_state="y"
+   date_written="2026-11-08 21:00:00"
+   requires="5.07"
+   version="1.2"
+   sequence="1"
+   >
+<description trim="y">
+<![CDATA[
+Carried items, worn gear, the inside of every bag and the keyring in one window. Identical items
+stack with a count, flags show as small letters, and the game's own {invmon} tags keep it current.
+Only the carried list is asked of the game (invdata); what you are wearing, what is inside your bags
+and what is on the keyring are read from dinv's database, so they cost no commands (and your own
+"You are using:" equipment display stays quiet). "Read from the game" on the Worn tab asks anyway. Click an item for its
+actions (wear, remove, get, put in a bag, drop, examine) or for dinv's details on it.
+
+@GWindow:@w
+@Yinvwin@w                 - show / hide the window
+@Yinvwin inv|worn|bags|keyring|all@w   - choose a tab        (all = everything loaded)
+@Yinvwin load@w            - read the inside of every bag
+@Yinvwin refresh | invwin empty@w
+@Yinvwin help@w            - print this list in the main window (also the Help chip in the window)
+
+@GFinding things:@w
+@Yinvwin <text>@w          - SEARCH carried items, every loaded bag and the keyring for that text, e.g. "invwin aardwolf"
+                         ("invwin clear" removes it)
+@Yinvwin type:potion spell:lotus@w   - targeted search, any mix of: type:<kind> wear:<slot> spell:<text>
+                         @Ylvl:10 | lvl:1-10 | lvl:1 lvl:10 | lvl:10+ | lvl:<=10   flag:<word> in:<inv|worn|keyring|bag>@w
+                         plus plain words ("quoted phrases" allowed). Searches carried items, bags, keyring and worn gear.
+@Yinvwin gear|use|containers|loot|portals|other|any@w   - choose a kind of item
+@Yinvwin slot head|neck|fingers|weapon|held|...@w  - gear worn in that slot (second chip row under Gear)
+@Yinvwin sort level|name|type@w
+
+@GItems:@w
+@Yi / inventory@w      - prints the stacked list (counts, flag letters, level, in the item's own colours)
+                     in the main window, like InvFlags, and refreshes the window as well
+@Yinvwin shorterflags@w - flags print as configured in Aardwolf; this switches to the shorter [KMGH] (and back)
+@Yinvwin objflag <options>@w - hide flags in the shorter form: kept invis magic glow hum tempered cursed envenomed
+                     weakened nolocate (or their letters K I M G H T C E W N); showplus marks items that lost a flag.
+                     No options lists them with On/Off; "invwin objflag all" turns every option off.
+@Yinvwin identify wish|cast 'spell'|lore|room@w  - how the window identifies items (no argument lists them;
+                         lore needs a donation room or city area, "room" needs room 32611 (Hester))
+@Yid <item>@w          - the identify box also opens as a card ("identify", "lore" and casting your identify spell work too);
+                     the original text still prints. Only identifies you type yourself open it.
+]]>
+</description>
+</plugin>
+
+<include name="constants.lua"/>
+
+<!--  The game's inventory lists and change tags (never shown in the output)  -->
+
+<triggers>
+  <trigger enabled="y" keep_evaluating="y" omit_from_output="y" regexp="y" sequence="100"
+   match="^\{invdata(?: (\d+))?\}$" script="IW_invStart"></trigger>
+  <trigger enabled="y" keep_evaluating="y" omit_from_output="y" regexp="y" sequence="100"
+   match="^\{/invdata\}$" script="IW_listEnd"></trigger>
+  <!-- the game's own "shortflags" setting: its confirmation message, or flags seen in full on any line -->
+  <trigger enabled="y" keep_evaluating="y" regexp="y" sequence="100"
+   match="^You will now see object and mob flags(.*)$" script="IW_flagMsg"></trigger>
+  <trigger enabled="y" keep_evaluating="y" regexp="y" sequence="100"
+   match="\((?:Keep|Glowing|Humming|Nolocate)\)" script="IW_flagSeen"></trigger>
+  <trigger enabled="y" keep_evaluating="y" omit_from_output="y" regexp="y" sequence="100"
+   match="^\{keyring\}$" script="IW_keyStart"></trigger>
+  <trigger enabled="y" keep_evaluating="y" omit_from_output="y" regexp="y" sequence="100"
+   match="^\{/keyring\}$" script="IW_listEnd"></trigger>
+  <trigger enabled="y" keep_evaluating="y" omit_from_output="y" regexp="y" sequence="100"
+   match="^\{eqdata\}$" script="IW_eqStart"></trigger>
+  <trigger enabled="y" keep_evaluating="y" omit_from_output="y" regexp="y" sequence="100"
+   match="^\{/eqdata\}$" script="IW_listEnd"></trigger>
+  <trigger enabled="n" group="IWitems" keep_evaluating="y" omit_from_output="y" regexp="y" sequence="100"
+   match="^\s*(?&lt;id&gt;\d+),(?&lt;flags&gt;[^,]*),(?&lt;name&gt;.*),(?&lt;level&gt;-?\d+),(?&lt;type&gt;\d+),(?&lt;unique&gt;\d+),(?&lt;wear&gt;-?\d+),(?&lt;timer&gt;-?\d+)$"
+   script="IW_itemLine"></trigger>
+  <trigger enabled="y" keep_evaluating="y" omit_from_output="y" regexp="y" sequence="100"
+   match="^\{invmon\}(\d+),(\d+),(-?\d+),(-?\d+)$" script="IW_invmon"></trigger>
+
+  <!-- the identify card: a dashed border starts it, then every line of the box is read -->
+  <trigger enabled="y" keep_evaluating="y" regexp="y" sequence="100"
+   match="^[+.']-{30,}[+.']\s*$" script="IW_idBorder"></trigger>
+  <trigger enabled="n" group="IWid" keep_evaluating="y" regexp="y" sequence="100"
+   match="^(.*)$" script="IW_idLine"></trigger>
+</triggers>
+
+<!--  Aliases  -->
+
+<aliases>
+  <alias match="^(?:invwin|inventorywin)(?: (.*))?$" enabled="y" regexp="y" script="IW_command" sequence="100"></alias>
+  <!-- i / inventory: the stacked list with coloured flag letters; this plugin loads first so it answers before the serials plugin -->
+  <alias match="^(i|in|inv|inve|inven|invent|invento|inventor|inventory) *$" enabled="y" regexp="y" ignore_case="y"
+   script="IW_inventoryCmd" sequence="100"></alias>
+</aliases>
+
+<!--  Script  -->
+
+<script>
+<![CDATA[
+-- InventoryWindow.lua : one window for inventory, worn gear and bags (module loaded by InventoryWindow.xml)
+--
+-- Reads the game's own tagged lists: invdata (carried items), eqdata (worn items) and
+-- "invdata <bag>" (a bag's contents). Each line is
+--     objectid,flags,name,level,type,unique,wearloc,timer
+-- After the first load the {invmon} tags keep it current without more commands: gear moves between
+-- the lists locally, and only a brand-new item makes it ask for the list again.
+-- Written for MUSHclient's Lua 5.1: no 5.2+ features.
+
+require "gmcphelper"
+require "themed_miniwindows"
+pcall(dofile, GetInfo(60) .. "telnet_options.lua")
+
+local WIN = "InventoryWin"
+local FONT, FONT_B = "if", "ifb"
+local PAD, GAP, SB_W = 8, 8, 9
+
+local fontName = GetAlphaOption("output_font_name")
+local fontHeight = GetOption("output_font_height")
+local lh = 14
+
+local InfoWin, shown = nil, false
+local added = {}
+
+---------------------------------------------------------------------------
+-- Helpers
+---------------------------------------------------------------------------
+local function rgb(r, g, b) return r + g * 256 + b * 65536 end
+local function lerp(a, b, t) return a + (b - a) * t end
+local function split(c) return c % 256, math.floor(c / 256) % 256, math.floor(c / 65536) % 256 end
+
+local function mixC(c1, c2, t)
+	local r1, g1, b1 = split(c1)
+	local r2, g2, b2 = split(c2)
+	return rgb(math.floor(lerp(r1, r2, t)), math.floor(lerp(g1, g2, t)), math.floor(lerp(b1, b2, t)))
+end
+
+local function trim(s) return (s:gsub("^%s+", ""):gsub("%s+$", "")) end
+
+local function commas(n)
+	n = tonumber(n) or 0
+	local s = tostring(math.floor(math.abs(n)))
+	s = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+	s = s:gsub("^,", "")
+	return (n < 0 and "-" or "") .. s
+end
+
+local ACC = {
+	blue = rgb(90, 150, 240), teal = rgb(70, 200, 200), amber = rgb(235, 185, 70), orange = rgb(235, 125, 70),
+	green = rgb(90, 200, 115), gold = rgb(240, 200, 80), grey = rgb(130, 130, 145), cyan = rgb(110, 190, 255),
+	red = rgb(235, 90, 80), purple = rgb(170, 125, 235), pink = rgb(230, 120, 190),
+}
+
+---------------------------------------------------------------------------
+-- Aardwolf colour codes in item names: @r @g @y @b @m @c @w @D (dark) @R @G @Y @B @M @C @W (bright),
+-- @x### (xterm 256 colours) and @@ for a real @
+---------------------------------------------------------------------------
+local CODE = {
+	r = rgb(170, 0, 0), g = rgb(0, 170, 0), y = rgb(170, 170, 0), b = rgb(60, 80, 220), m = rgb(170, 0, 170),
+	c = rgb(0, 170, 170), w = rgb(192, 192, 192), D = rgb(128, 128, 128),
+	R = rgb(255, 60, 60), G = rgb(60, 255, 60), Y = rgb(255, 255, 60), B = rgb(90, 110, 255), M = rgb(255, 60, 255),
+	C = rgb(60, 255, 255), W = rgb(255, 255, 255),
+}
+local CUBE = { 0, 95, 135, 175, 215, 255 }
+local XTERM16 = {
+	[0] = rgb(0, 0, 0), rgb(170, 0, 0), rgb(0, 170, 0), rgb(170, 170, 0), rgb(60, 80, 220), rgb(170, 0, 170),
+	rgb(0, 170, 170), rgb(192, 192, 192), rgb(128, 128, 128), rgb(255, 60, 60), rgb(60, 255, 60), rgb(255, 255, 60),
+	rgb(90, 110, 255), rgb(255, 60, 255), rgb(60, 255, 255), rgb(255, 255, 255),
+}
+
+local function xterm(n)
+	if n < 16 then return XTERM16[n] end
+	if n < 232 then
+		n = n - 16
+		return rgb(CUBE[math.floor(n / 36) + 1], CUBE[math.floor(n / 6) % 6 + 1], CUBE[n % 6 + 1])
+	end
+	local v = 8 + (n - 232) * 10
+	return rgb(v, v, v)
+end
+
+local colourCache, colourCount = {}, 0
+
+-- returns the plain text and a list of runs { text, col } (col nil = no colour given)
+local function parseColours(s)
+	s = tostring(s or "")
+	local hit = colourCache[s]
+	if hit then return hit[1], hit[2] end
+	local runs, buf, col = {}, {}, nil
+	local function flush()
+		if #buf > 0 then
+			runs[#runs + 1] = { text = table.concat(buf), col = col }
+			buf = {}
+		end
+	end
+	local i, n = 1, #s
+	while i <= n do
+		local ch = s:sub(i, i)
+		local nx = (ch == "@") and s:sub(i + 1, i + 1) or ""
+		if nx == "@" then
+			buf[#buf + 1] = "@"
+			i = i + 2
+		elseif nx == "x" and s:match("^%d%d?%d?", i + 2) and tonumber(s:match("^%d%d?%d?", i + 2)) <= 255 then
+			local digits = s:match("^%d%d?%d?", i + 2)
+			flush()
+			col = xterm(tonumber(digits))
+			i = i + 2 + #digits
+		elseif nx ~= "" and CODE[nx] then
+			flush()
+			col = CODE[nx]
+			i = i + 2
+		else
+			buf[#buf + 1] = ch
+			i = i + 1
+		end
+	end
+	flush()
+	local plain = {}
+	for _, r in ipairs(runs) do plain[#plain + 1] = r.text end
+	local p = table.concat(plain)
+	colourCount = colourCount + 1
+	if colourCount > 6000 then colourCache, colourCount = {}, 0 end
+	colourCache[s] = { p, runs }
+	return p, runs
+end
+
+local function lum(c)
+	local r, g, b = split(c)
+	return 0.299 * r + 0.587 * g + 0.114 * b
+end
+
+-- keep very dark game colours readable on a dark window (and very light ones on a light window)
+local function legible(c, P)
+	local bgl = lum(P.bg)
+	if bgl < 128 and lum(c) < 70 then return mixC(c, P.text, 0.55) end
+	if bgl >= 128 and lum(c) > 200 then return mixC(c, P.text, 0.55) end
+	return c
+end
+
+local function palette()
+	local bg, tx = Theme.PRIMARY_BODY, Theme.BODY_TEXT
+	return {
+		bg = bg, text = tx, muted = mixC(tx, bg, 0.45), panel = mixC(bg, tx, 0.07),
+		edge = mixC(bg, tx, 0.24), track = mixC(bg, tx, 0.17),
+	}
+end
+
+---------------------------------------------------------------------------
+-- What the numbers in the tags mean
+---------------------------------------------------------------------------
+local TYPE_NAME = {
+	[0] = "None", "Light", "Scroll", "Wand", "Staff", "Weapon", "Treasure", "Armor", "Potion", "Furniture", "Trash",
+	"Container", "Drink", "Key", "Food", "Boat", "Mob corpse", "Player corpse", "Fountain", "Pill", "Portal", "Beacon",
+	"Gift card", "Unused", "Raw material", "Campfire", "Forge", "Runestone",
+}
+
+local WEAR_NAME = {
+	[0] = "Light", "Head", "Eyes", "Left ear", "Right ear", "Neck 1", "Neck 2", "Back", "Medal 1", "Medal 2",
+	"Medal 3", "Medal 4", "Torso", "Body", "Waist", "Arms", "Left wrist", "Right wrist", "Hands", "Left finger",
+	"Right finger", "Legs", "Feet", "Shield", "Wielded", "Second", "Held", "Floating", "Tattoo 1", "Tattoo 2",
+	"Above", "Portal", "Sleeping",
+}
+local WEAR_MAX = 32
+
+-- groups for the chips under the tabs
+local GROUPS = { "any", "gear", "use", "bags", "loot", "portal", "other" }
+local GROUP_NAMES = { any = "All", gear = "Gear", use = "Consumables", bags = "Containers", loot = "Loot",
+	portal = "Portals", other = "Other" }
+local TYPE_GROUP = {
+	[1] = "gear", [5] = "gear", [7] = "gear", [26] = "gear",
+	[2] = "use", [3] = "use", [4] = "use", [8] = "use", [12] = "use", [14] = "use", [19] = "use",
+	[11] = "bags",
+	[6] = "loot", [10] = "loot", [22] = "loot", [24] = "loot",
+	[20] = "portal", [21] = "portal",
+}
+local TYPE_COLOUR = {
+	gear = ACC.orange, use = ACC.green, bags = ACC.gold, loot = ACC.amber, portal = ACC.cyan, other = ACC.grey,
+}
+local FLAG_COLOUR = { K = ACC.red, M = ACC.blue, G = ACC.gold, H = ACC.cyan, I = ACC.grey, C = ACC.amber,
+	T = ACC.orange, E = ACC.green, W = ACC.pink, N = ACC.purple }
+
+local itemRow   -- (defined further down, once dinv's data exists)
+local identifyBlocked, setIdentifyMethod   -- (the identify settings, defined with the identify card)
+
+-- Armor, weapons and lights are always gear. Anything else is gear too when dinv says it is worn in a
+-- slot other than "held" (a ring typed as Treasure, a floating item, ...).
+local function groupOf(it)
+	local g = TYPE_GROUP[it.type] or "other"
+	if g == "gear" then return g end
+	local r = itemRow and itemRow(it.id and it or { id = it.ids and it.ids[1] })
+	local w = r and r.wearable and tostring(r.wearable):lower() or ""
+	if w ~= "" and not w:find("^hold") then return "gear" end
+	if g == "other" or g == "loot" or g == "use" then
+		if it.wear and it.wear >= 0 and it.wear ~= 26 and it.wear ~= 31 and w == "" then return "gear" end
+	end
+	return g
+end
+
+-- the second row of chips under Gear: where the item is worn
+local SLOTS = { "any", "head", "eyes", "ear", "neck", "back", "body", "arms", "hands", "wrist", "finger", "waist",
+	"legs", "feet", "wield", "shield", "hold", "light", "float", "medal", "above" }
+local SLOT_NAMES = { any = "Any slot", head = "Head", eyes = "Eyes", ear = "Ears", neck = "Neck", back = "Back",
+	body = "Body", arms = "Arms", hands = "Hands", wrist = "Wrists", finger = "Fingers", waist = "Waist",
+	legs = "Legs", feet = "Feet", wield = "Weapon", shield = "Shield", hold = "Held", light = "Light",
+	float = "Floating", medal = "Medals", above = "Above" }
+-- the game's slot numbers -> a slot chip
+local NUM_SLOT = { [0] = "light", "head", "eyes", "ear", "ear", "neck", "neck", "back", "medal", "medal", "medal",
+	"medal", "body", "body", "waist", "arms", "wrist", "wrist", "hands", "finger", "finger", "legs", "feet",
+	"shield", "wield", "wield", "hold", "float", nil, nil, "above" }
+
+---------------------------------------------------------------------------
+-- State
+---------------------------------------------------------------------------
+local inv = {}      -- [id] = item, carried (not worn)
+local worn = {}     -- [wearloc] = item
+local bags = {}     -- [bagId] = { items = {[id] = item}, count, fetchedAt }
+local loaded = { inv = false, eq = false }
+local fetchedAt = nil
+local pending = {}  -- what we have asked the game for, with the time
+local mode          -- what the lines being read right now belong to: { kind = "inv" | "eq" | "bag", bag = id }
+local readInv, readEq, readBag
+
+local readKey, keyringSource = {}, nil   -- the keyring as the game listed it ("keyring data"), when dinv is not there to tell us
+local wornSource = nil  -- "dinv" or "game": where the Worn tab's list came from
+local keyring = {}  -- items on the keyring (only dinv knows these)
+local dinv = { items = {}, loadedAt = nil, err = nil }  -- dinv's database, read-only: [obj id] = row
+
+local TABS = { "inv", "worn", "bags", "keyring", "all" }
+local TAB_NAMES = { inv = "Inventory", worn = "Worn", bags = "Bags", keyring = "Keyring", all = "Everywhere" }
+local SORTS = { "level", "name", "type" }
+local SORT_NAMES = { level = "Level", name = "Name", type = "Type" }
+
+local function oneOf(list, v, default)
+	for _, x in ipairs(list) do
+		if x == v then return v end
+	end
+	return default
+end
+
+local view = {
+	tab = oneOf(TABS, GetVariable("tab"), "inv"),
+	group = oneOf(GROUPS, GetVariable("group"), "any"),
+	sort = oneOf(SORTS, GetVariable("sort"), "level"),
+	empty = GetVariable("empty") ~= "0",
+	slot = oneOf(SLOTS, GetVariable("slot"), "any"),
+	filter = "", q = nil, bag = nil, scroll = 0,
+	bagOpen = {},       -- bag groups (same name) that are listed individually
+	open = {},          -- stacks that are expanded into their individual items
+}
+
+local function saveView()
+	SetVariable("tab", view.tab)
+	SetVariable("group", view.group)
+	SetVariable("slot", view.slot)
+	SetVariable("sort", view.sort)
+	SetVariable("empty", view.empty and "1" or "0")
+end
+
+---------------------------------------------------------------------------
+-- Reading the game's lines
+---------------------------------------------------------------------------
+local placeCounter = 0
+
+local function newItem(wc)
+	local plain, runs = parseColours(wc.name)
+	placeCounter = placeCounter + 1
+	return {
+		id = tonumber(wc.id), flags = wc.flags or "", name = plain, runs = runs, lname = plain:lower(),
+		level = tonumber(wc.level) or 0, type = tonumber(wc.type) or 0, unique = tonumber(wc.unique) == 1,
+		wear = tonumber(wc.wear) or -1, timer = tonumber(wc.timer) or -1, place = placeCounter,
+	}
+end
+
+local function sendQuiet(cmd)
+	-- the same way wrapped_captures does it: no paging prompt in the middle of a list
+	if TELOPT_PAGING then pcall(TelnetOptionOff, TELOPT_PAGING) end
+	SendNoEcho(cmd)
+	if TELOPT_PAGING then pcall(TelnetOptionOn, TELOPT_PAGING) end
+end
+
+local redrawPending = nil
+function IW_doRedraw()
+	redrawPending = nil
+	if shown then safeDraw() end
+end
+
+local function requestRedraw()
+	if shown and (not redrawPending or os.clock() - redrawPending > 2) then
+		redrawPending = os.clock()
+		DoAfterSpecial(0.15, "IW_doRedraw()", sendto.script)
+	end
+end
+
+-- A list we asked for ourselves is kept away from everything else (your world's own "You are using:"
+-- formatter would otherwise print the whole equipment list every time the window refreshes). Lists that
+-- you or another plugin asked for pass through untouched.
+local mineBlock = false
+local function claimed(key)
+	local t = pending[key]
+	return t ~= nil and os.time() - t < 12
+end
+
+-- the game's own setting: are flags shown in full, (Keep)(Magic), or as letters, (K)(M)?
+local gameFlagsFull = GetVariable("gameflagsfull") == "1"
+local FLAG_FULL = { K = "Keep", M = "Magic", G = "Glowing", H = "Humming", N = "Nolocate", I = "Invis",
+	T = "Tempered", C = "Cursed", E = "Envenomed", W = "Weakened" }
+-- the game's own flag-hiding options (name, letter, what it hides); the order is the game's
+local FLAG_OPTIONS = {
+	{ "Kept", "K", "kept items" }, { "Invis", "I", "invisible items" }, { "Magic", "M", "magical items" },
+	{ "Glow", "G", "glowing items" }, { "Hum", "H", "humming items" }, { "Tempered", "T", "tempered items" },
+	{ "Cursed", "C", "cursed items" }, { "Envenomed", "E", "envenomed weapons" },
+	{ "Weakened", "W", "weakened items" }, { "Nolocate", "N", "nolocate items" },
+}
+function IW_flagMsg(name, line, wc)
+	gameFlagsFull = (wc[1] or ""):lower():find("full", 1, true) ~= nil
+	SetVariable("gameflagsfull", gameFlagsFull and "1" or "0")
+end
+function IW_flagSeen()
+	if not gameFlagsFull then
+		gameFlagsFull = true
+		SetVariable("gameflagsfull", "1")
+	end
+end
+local hiddenFlags = {}   -- flag letters left out of the [KMGH] form (invwin objflag)
+for ch in (GetVariable("hiddenflags") or ""):gmatch("%a") do hiddenFlags[ch] = true end
+local function visibleFlags(flags, short)
+	if not short then return flags end
+	return (flags:gsub("%a", function(ch) return hiddenFlags[ch] and "" or nil end))
+end
+local showPlus = GetVariable("showplus") == "1"      -- show a + when flags were hidden from an item
+local shortFlags = GetVariable("shortflags") == "1"   -- off by default: (K)(M)(G)(H); on: [KMGH]
+local printInventory -- defined below; shows the carried list as text when you type i
+
+function IW_invStart(name, line, wc)
+	local bag = tonumber(wc[1])
+	mode = bag and { kind = "bag", bag = bag } or { kind = "inv" }
+	readInv, readBag, placeCounter = {}, {}, 0
+	mineBlock = claimed(bag and ("bag" .. bag) or "inv")
+	EnableTriggerGroup("IWitems", true)
+	if mineBlock then StopEvaluatingTriggers(true) end
+end
+
+function IW_eqStart(name, line, wc)
+	mode = { kind = "eq" }
+	readEq, placeCounter = {}, 0
+	mineBlock = claimed("eq")
+	EnableTriggerGroup("IWitems", true)
+	if mineBlock then StopEvaluatingTriggers(true) end
+end
+
+function IW_keyStart(name, line, wc)
+	mode = { kind = "key" }
+	readKey, placeCounter = {}, 0
+	mineBlock = claimed("key")
+	EnableTriggerGroup("IWitems", true)
+	if mineBlock then StopEvaluatingTriggers(true) end
+end
+
+function IW_itemLine(name, line, wc)
+	if mineBlock then StopEvaluatingTriggers(true) end
+	if not mode then return end
+	local it = newItem(wc)
+	if not it.id then return end
+	if mode.kind == "inv" then readInv[it.id] = it
+	elseif mode.kind == "bag" then readBag[it.id] = it
+	elseif mode.kind == "eq" then
+		if it.wear >= 0 then readEq[it.wear] = it end
+	elseif mode.kind == "key" then
+		it.loc = -2
+		readKey[#readKey + 1] = it
+	end
+end
+
+local printAfter = false
+
+function IW_listEnd(name, line, wc)
+	local wasMine = mineBlock
+	mineBlock = false
+	EnableTriggerGroup("IWitems", false)
+	if mode then
+		local now = os.time()
+		local kind = mode.kind
+		if kind == "inv" then
+			inv, loaded.inv, pending.inv = readInv, true, nil
+			-- bags that left the inventory are gone
+			for id in pairs(bags) do
+				if not inv[id] then bags[id] = nil end
+			end
+		elseif kind == "eq" then
+			worn, loaded.eq, pending.eq, wornSource = readEq, true, nil, "game"
+		elseif kind == "key" then
+			keyring, keyringSource, pending.key = readKey, "game", nil
+		elseif kind == "bag" then
+			local n = 0
+			for _ in pairs(readBag) do n = n + 1 end
+			bags[mode.bag] = { items = readBag, count = n, fetchedAt = now, source = "game" }
+			pending["bag" .. mode.bag] = nil
+		end
+		fetchedAt = now
+		mode = nil
+		requestRedraw()
+		if kind == "inv" and printAfter then
+			printAfter = false
+			printInventory()
+		end
+	end
+	if wasMine then StopEvaluatingTriggers(true) end
+end
+
+---------------------------------------------------------------------------
+-- dinv's database (read-only): bag contents and the keyring without asking the game
+---------------------------------------------------------------------------
+local DINV_PLUGIN = "731f94b0f2b54345f836bbaf"
+
+local TYPE_BY_NAME = {}
+for n, name in pairs(TYPE_NAME) do TYPE_BY_NAME[(name:lower():gsub("%s", ""))] = n end
+
+local function dinvPath()
+	local who = gmcp("char.base.name")
+	if type(who) ~= "string" or who == "" then return nil end
+	return GetInfo(60) .. "state\\dinv-" .. DINV_PLUGIN .. "\\" .. who .. "\\dinv.db"
+end
+
+-- dinv keeps the long identify flags; the game's short letters are the closest match
+local function flagLetters(text)
+	local f = "," .. (text or ""):lower():gsub("%s", "") .. ","
+	local out = ""
+	if f:find(",glow,", 1, true) then out = out .. "G" end
+	if f:find(",hum,", 1, true) then out = out .. "H" end
+	if f:find(",magic,", 1, true) then out = out .. "M" end
+	if f:find(",invis,", 1, true) then out = out .. "I" end
+	return out
+end
+
+-- dinv's own wear-slot names -> the game's slot numbers
+local DINV_WEAR = { light = 0, head = 1, eyes = 2, lear = 3, rear = 4, neck1 = 5, neck2 = 6, back = 7, medal1 = 8,
+	medal2 = 9, medal3 = 10, medal4 = 11, torso = 12, body = 13, waist = 14, arms = 15, lwrist = 16, rwrist = 17,
+	hands = 18, lfinger = 19, rfinger = 20, legs = 21, feet = 22, shield = 23, wielded = 24, second = 25, hold = 26,
+	float = 27, tattoo1 = 28, tattoo2 = 29, above = 30, portal = 31, sleeping = 32 }
+
+local function dinvItem(id, r)
+	-- color_name keeps the item's own colours
+	local coded = (r.color_name and r.color_name ~= "") and tostring(r.color_name)
+		or ((r.name and r.name ~= "") and tostring(r.name) or "(not identified yet)")
+	local name, runs = parseColours(coded)
+	return {
+		id = id, flags = flagLetters(r.flags), name = name, runs = runs, lname = name:lower(), level = tonumber(r.level) or 0,
+		type = TYPE_BY_NAME[(tostring(r.type or ""):lower():gsub("%s", ""))] or 0, unique = false, wear = -1, timer = -1,
+		fromDinv = true,
+	}
+end
+
+local function dinvApply()
+	local newBags, kr = {}, {}
+	for id, r in pairs(dinv.items) do
+		local where = tostring(r.object_location or "")
+		if where == "keyring" then
+			local it = dinvItem(id, r)
+			it.loc = -2
+			kr[#kr + 1] = it
+		else
+			local c = tonumber(where)
+			if c and c == tonumber(r.home_container) then
+				local b = newBags[c]
+				if not b then
+					b = { items = {}, count = 0, fetchedAt = dinv.loadedAt, source = "dinv" }
+					newBags[c] = b
+				end
+				b.items[id] = dinvItem(id, r)
+				b.count = b.count + 1
+			end
+		end
+	end
+	if keyringSource ~= "game" then keyring = kr end   -- a list we just read from the game wins
+	for c, b in pairs(newBags) do
+		local old = bags[c]
+		if not (old and old.source == "game") then bags[c] = b end   -- what the game just told us wins
+	end
+
+	-- what you are wearing: dinv knows it too, so the Worn tab needs no command (and your world's own
+	-- "You are using:" formatter is not set off by one). Only an explicit "Read from the game" asks.
+	if wornSource ~= "game" then
+		local dw = {}
+		for id, r in pairs(dinv.items) do
+			local slot = DINV_WEAR[tostring(r.object_location or "")]
+			if slot then
+				local it = dinvItem(id, r)
+				it.wear = slot
+				dw[slot] = it
+			end
+		end
+		worn, wornSource, loaded.eq = dw, "dinv", true
+	end
+end
+
+-- returns true when the database was read
+local function dinvRead()
+	local path = dinvPath()
+	if not path then dinv.err = "waiting for your character name" return false end
+	local fh = io.open(path, "rb")
+	if not fh then dinv.err = "dinv's database was not found" return false end
+	fh:close()
+	local ok, db = pcall(sqlite3.open, path)
+	if not ok or not db then dinv.err = "could not open dinv's database" return false end
+	local okQ, items = pcall(function()
+		local stmt = db:prepare("SELECT * FROM items")
+		if not stmt then error("busy") end
+		local out = {}
+		while stmt:step() == sqlite3.ROW do
+			local r = stmt:get_named_values()
+			local id = tonumber(r.obj_id)
+			if id then out[id] = r end
+		end
+		stmt:finalize()
+		return out
+	end)
+	pcall(function() db:close() end)
+	if not okQ then dinv.err = "dinv's database is busy; try Refresh in a moment" return false end
+	dinv.items, dinv.loadedAt, dinv.err = items, os.time(), nil
+	dinvApply()
+	return true
+end
+
+---------------------------------------------------------------------------
+-- Asking the game
+---------------------------------------------------------------------------
+local function ask(key, cmd)
+	local t = pending[key]
+	if t and os.time() - t < 8 then return end
+	pending[key] = os.time()
+	sendQuiet(cmd)
+end
+
+local function askInv() ask("inv", "invdata") end
+local function askEq() ask("eq", "eqdata") end
+local function askBag(id) ask("bag" .. id, "invdata " .. id) end
+local function askKeyring() ask("key", "keyring data") end
+
+local refreshQueued = false
+function IW_doRefresh()
+	refreshQueued = false
+	askInv()
+end
+
+-- many tags can arrive at once (a loot burst); ask for the carried list just once afterwards
+local function queueInvRefresh()
+	if not refreshQueued then
+		refreshQueued = true
+		DoAfterSpecial(1.5, "IW_doRefresh()", sendto.script)
+	end
+end
+
+local function loadAllBags()
+	local n = 0
+	for id, it in pairs(inv) do
+		if it.type == 11 then
+			n = n + 1
+			DoAfterSpecial(0.6 * n, "IW_askBag(" .. id .. ")", sendto.script)
+		end
+	end
+end
+
+function IW_askBag(id) askBag(tonumber(id)) end
+
+---------------------------------------------------------------------------
+-- Live changes from {invmon}action,objectid,container,wearloc
+---------------------------------------------------------------------------
+local function findInBags(id)
+	for bagId, b in pairs(bags) do
+		if b.items[id] then return bagId, b.items[id] end
+	end
+end
+
+-- something unknown was worn or removed: re-read dinv a moment later (it handles the same tag), or ask the
+-- game if dinv is not available
+function IW_rereadDinv()
+	dinvRead()
+	requestRedraw()
+end
+
+local function wornChanged()
+	if wornSource == "game" or dinv.err then askEq()
+	else DoAfterSpecial(2.5, "IW_rereadDinv()", sendto.script) end
+end
+
+function IW_invmon(name, line, wc)
+	local action, id, container, wear = tonumber(wc[1]), tonumber(wc[2]), tonumber(wc[3]), tonumber(wc[4])
+	if not (action and id) then return end
+
+	if action == 1 then          -- removed: worn -> carried
+		local it = worn[wear]
+		if it and it.id == id then
+			worn[wear] = nil
+			it.wear = -1
+			inv[id] = it
+		else
+			queueInvRefresh()
+			wornChanged()
+		end
+	elseif action == 2 then      -- worn: carried -> worn
+		local it = inv[id]
+		if it then
+			inv[id] = nil
+			it.wear = wear
+			worn[wear] = it
+		else
+			wornChanged()
+			queueInvRefresh()
+		end
+	elseif action == 3 or action == 7 or action == 9 or action == 11 then -- dropped, sold, eaten, vaulted, keyringed
+		inv[id] = nil
+		if bags[id] then bags[id] = nil end
+	elseif action == 4 or action == 10 or action == 12 then   -- picked up, out of vault or keyring
+		queueInvRefresh()
+	elseif action == 5 then      -- taken out of a bag
+		local b = bags[container]
+		if b and b.items[id] then
+			local it = b.items[id]
+			b.items[id] = nil
+			b.count = math.max(0, (b.count or 1) - 1)
+			it.wear = -1
+			inv[id] = it
+		else
+			queueInvRefresh()
+		end
+	elseif action == 6 then      -- put into a bag
+		local it = inv[id]
+		inv[id] = nil
+		local b = bags[container]
+		if b and it then
+			b.items[id] = it
+			b.count = (b.count or 0) + 1
+		elseif b then
+			askBag(container)
+		end
+	end
+	requestRedraw()
+end
+
+---------------------------------------------------------------------------
+-- Building the lists to show
+---------------------------------------------------------------------------
+-- identical items (same name, level, flags) collapse into one stack with a count
+local function stackItems(list)
+	local stacks, byKey = {}, {}
+	for _, it in ipairs(list) do
+		local key = it.lname .. "|" .. it.level .. "|" .. it.flags .. "|" .. it.type .. "|" .. tostring(it.loc)
+		local s = byKey[key]
+		if s then
+			s.count = s.count + 1
+			s.ids[#s.ids + 1] = it.id
+			if (it.place or 0) < s.place then s.place = it.place end
+		else
+			s = { name = it.name, runs = it.runs, lname = it.lname, level = it.level, flags = it.flags, type = it.type,
+				unique = it.unique, timer = it.timer, loc = it.loc, count = 1, ids = { it.id }, place = it.place or 0, key = key }
+			byKey[key] = s
+			stacks[#stacks + 1] = s
+		end
+	end
+	return stacks
+end
+
+local function bagList()
+	local out = {}
+	for id, it in pairs(inv) do
+		if it.type == 11 then out[#out + 1] = it end
+	end
+	table.sort(out, function(a, b)
+		if (a.place or 0) ~= (b.place or 0) then return (a.place or 0) < (b.place or 0) end
+		return a.id < b.id
+	end)
+	-- number identical names (in the order the game listed them) (#1, #2, ...) so six "Bag of Aardwolf" can be told apart
+	local seen, total = {}, {}
+	for _, b in ipairs(out) do total[b.lname] = (total[b.lname] or 0) + 1 end
+	for _, b in ipairs(out) do
+		seen[b.lname] = (seen[b.lname] or 0) + 1
+		local base = b.name:gsub("^[Aa]n? ", ""):gsub("^[Tt]he ", "")
+		b.label = (total[b.lname] > 1) and (base .. " #" .. seen[b.lname]) or base
+	end
+	return out
+end
+
+local function bagLabel(id)
+	for _, b in ipairs(bagList()) do
+		if b.id == id then return b.label end
+	end
+	return "bag " .. id
+end
+
+-- where an item is worn: the slot it sits in, or what dinv knows it fits
+itemRow = function(it)
+	return dinv.items[it.id] or dinv.items[tostring(it.id)] or dinv.items[tonumber(it.id) or -1]
+end
+
+local function slotOf(it)
+	if it.wear and it.wear >= 0 and NUM_SLOT[it.wear] then return NUM_SLOT[it.wear] end
+	local r = itemRow(it)
+	local w = r and r.wearable and tostring(r.wearable):lower() or ""
+	if w == "" then return nil end
+	return w:match("^(%a+)")
+end
+
+-- Targeted searches: invwin spells:lotus type:potion lvl:1-10 wear:arms flag:magic in:worn "some words"
+local QKEY = { type = "type", t = "type", wear = "wear", slot = "wear", w = "wear", spell = "spell", spells = "spell",
+	s = "spell", lvl = "lvl", level = "lvl", l = "lvl", flag = "flag", flags = "flag", f = "flag", ["in"] = "in",
+	loc = "in", where = "in", name = "name", n = "name" }
+local SLOT_ALIAS = { ears = "ear", wrists = "wrist", fingers = "finger", weapon = "wield", wielded = "wield",
+	held = "hold", medals = "medal", torso = "body", chest = "body", leg = "legs", foot = "feet", hand = "hands",
+	arm = "arms", shields = "shield", floating = "float" }
+local FLAG_LETTER = { glow = "G", hum = "H", magic = "M", invis = "I", invisible = "I" }
+
+local function typeMatches(word)
+	word = word:gsub("%s", "")
+	local out, any = {}, false
+	for n, name in pairs(TYPE_NAME) do
+		local ln = (name:lower():gsub("%s", ""))
+		if ln == word or (#word >= 3 and ln:sub(1, #word) == word) then out[n] = true any = true end
+	end
+	return any and out or nil
+end
+
+local function splitWords(rest)
+	local tokens, i = {}, 1
+	while i <= #rest do
+		if rest:sub(i, i):match("%s") then i = i + 1
+		else
+			local j, buf = i, ""
+			while j <= #rest and not rest:sub(j, j):match("%s") do
+				local ch = rest:sub(j, j)
+				if ch == '"' then
+					local close = rest:find('"', j + 1, true) or (#rest + 1)
+					buf = buf .. rest:sub(j + 1, close - 1)
+					j = close + 1
+				else buf = buf .. ch j = j + 1 end
+			end
+			tokens[#tokens + 1] = buf
+			i = j
+		end
+	end
+	return tokens
+end
+
+-- returns a query table, or nil and a message
+local function parseQuery(arg)
+	local q = { words = {}, spells = {}, flags = {}, nums = {}, raw = arg }
+	for _, tok in ipairs(splitWords(arg)) do
+		local k, v = tok:match("^(%a+):(.+)$")
+		local key = k and QKEY[k]
+		if k and not key then return nil, "unknown search key '" .. k .. ":' (type, wear, spell, lvl, flag, in, name)" end
+		if not key then
+			q.words[#q.words + 1] = tok
+		elseif key == "name" then q.words[#q.words + 1] = v
+		elseif key == "spell" then q.spells[#q.spells + 1] = v
+		elseif key == "flag" then q.flags[#q.flags + 1] = v
+		elseif key == "in" then q.where = v
+		elseif key == "type" then
+			q.types = q.types or {}
+			local t = typeMatches(v)
+			if not t then return nil, "no item type matches '" .. v .. "'" end
+			for n in pairs(t) do q.types[n] = true end
+		elseif key == "wear" then
+			local w = SLOT_ALIAS[v] or v
+			if not oneOf(SLOTS, w, nil) or w == "any" then return nil, "no wear slot '" .. v .. "' (" .. table.concat(SLOTS, ", ") .. ")" end
+			q.wear = w
+		elseif key == "lvl" then
+			local a, b = v:match("^(%d+)%-(%d+)$")
+			if a then q.nums[#q.nums + 1] = tonumber(a) q.nums[#q.nums + 1] = tonumber(b)
+			elseif v:match("^%d+%+$") then q.lvmin = tonumber(v:match("%d+"))
+			elseif v:match("^<=?%d+$") then q.lvmax = tonumber(v:match("%d+"))
+			elseif v:match("^>=?%d+$") then q.lvmin = tonumber(v:match("%d+"))
+			elseif v:match("^%d+$") then q.nums[#q.nums + 1] = tonumber(v)
+			else return nil, "level looks like lvl:10, lvl:1-10, lvl:10+ or lvl:<=10" end
+		end
+	end
+	if #q.nums == 1 then q.lvmin, q.lvmax = q.nums[1], q.nums[1]
+	elseif #q.nums >= 2 then
+		table.sort(q.nums)
+		q.lvmin, q.lvmax = q.nums[1], q.nums[#q.nums]
+	end
+	if q.where then
+		local w = q.where
+		q.scope = (w == "inv" or w == "inventory" or w == "carried") and -1 or (w == "worn" and -3)
+			or (w == "keyring" and -2) or nil
+		if not q.scope then q.bagText = w end
+	end
+	return q
+end
+
+local function queryMatches(q, it)
+	local lv = it.level or 0
+	if q.lvmin and lv < q.lvmin then return false end
+	if q.lvmax and lv > q.lvmax then return false end
+	if q.types and not q.types[it.type] then return false end
+	if q.wear and slotOf(it) ~= q.wear then return false end
+	for _, w in ipairs(q.words) do
+		if not it.lname:find(w, 1, true) then return false end
+	end
+	if #q.spells > 0 or #q.flags > 0 then
+		local r = itemRow(it)
+		local sp = r and r.spells and tostring(r.spells):lower() or ""
+		for _, w in ipairs(q.spells) do
+			if not sp:find(w, 1, true) then return false end
+		end
+		local fl = r and r.flags and (", " .. tostring(r.flags):lower()) or ""
+		for _, w in ipairs(q.flags) do
+			local L = FLAG_LETTER[w] or (#w == 1 and w:upper())
+			if not (fl:find(w, 1, true) or (L and (it.flags or ""):find(L, 1, true))) then return false end
+		end
+	end
+	return true
+end
+
+local function matches(it)
+	if view.q and not queryMatches(view.q, it) then return false end
+	if view.group == "gear" and view.slot ~= "any" and slotOf(it) ~= view.slot then return false end
+	if view.filter ~= "" and not it.lname:find(view.filter, 1, true) then return false end
+	if view.group ~= "any" and groupOf(it) ~= view.group then return false end
+	return true
+end
+
+local function sortStacks(stacks)
+	local s = view.sort
+	table.sort(stacks, function(a, b)
+		if s == "name" then
+			if a.lname ~= b.lname then return a.lname < b.lname end
+		elseif s == "type" then
+			if a.type ~= b.type then return a.type < b.type end
+			if a.level ~= b.level then return a.level > b.level end
+		else
+			if a.level ~= b.level then return a.level > b.level end
+		end
+		if a.lname ~= b.lname then return a.lname < b.lname end
+		return a.ids[1] < b.ids[1]
+	end)
+	return stacks
+end
+
+local function currentRows()
+	local rows = {}
+	if view.tab == "worn" then
+		for slot = 0, WEAR_MAX do
+			local it = worn[slot]
+			if it and matches(it) then
+				rows[#rows + 1] = { slot = slot, it = it }
+			elseif not it and view.empty and view.filter == "" and not view.q and view.group == "any" and slot ~= 31 and slot ~= 32 then
+				rows[#rows + 1] = { slot = slot }
+			end
+		end
+		return rows
+	end
+
+	local list = {}
+	if view.tab == "inv" or view.tab == "all" then
+		for _, it in pairs(inv) do
+			it.loc = -1
+			if matches(it) then list[#list + 1] = it end
+		end
+	end
+	if view.tab == "bags" and view.bag and bags[view.bag] then
+		for _, it in pairs(bags[view.bag].items) do
+			it.loc = view.bag
+			if matches(it) then list[#list + 1] = it end
+		end
+	elseif view.tab == "all" then
+		for bagId, b in pairs(bags) do
+			if inv[bagId] then   -- only bags we are really carrying
+				for _, it in pairs(b.items) do
+					it.loc = bagId
+					if matches(it) then list[#list + 1] = it end
+				end
+			end
+		end
+	end
+	if view.tab == "keyring" or view.tab == "all" then
+		for _, it in ipairs(keyring) do
+			it.loc = -2
+			if matches(it) then list[#list + 1] = it end
+		end
+	end
+	if view.tab == "all" then                       -- "Everywhere" includes what you wear
+		for slot = 0, WEAR_MAX do
+			local it = worn[slot]
+			if it then
+				it.loc = -3
+				if matches(it) then list[#list + 1] = it end
+			end
+		end
+		local q = view.q or {}
+		local keep = {}
+		for _, it in ipairs(list) do
+			local ok = true
+			if q.scope and it.loc ~= q.scope then ok = false end
+			if q.bagText then
+				if not (it.loc >= 0 and bagLabel(it.loc):lower():find(q.bagText, 1, true)) then ok = false end
+			end
+			if ok then keep[#keep + 1] = it end
+		end
+		list = keep
+	end
+	table.sort(list, function(a, b)   -- the order the game listed them in
+		local pa, pb = a.place or 0, b.place or 0
+		if pa ~= pb then return pa < pb end
+		return tostring(a.id) < tostring(b.id)
+	end)
+	local stacks = sortStacks(stackItems(list))
+	-- an opened stack is followed by its individual items, in the order the game listed them
+	local out = {}
+	for _, st in ipairs(stacks) do
+		out[#out + 1] = st
+		if st.count > 1 and view.open[st.key] then
+			st.expanded = true
+			for k, id in ipairs(st.ids) do
+				out[#out + 1] = { sub = true, parentKey = st.key, ordinal = k, ids = { id }, count = 1, name = st.name,
+					runs = st.runs, lname = st.lname, level = st.level, flags = st.flags, type = st.type,
+					unique = st.unique, timer = st.timer, loc = st.loc, place = st.place }
+			end
+		end
+	end
+	return out
+end
+
+---------------------------------------------------------------------------
+-- Drawing
+---------------------------------------------------------------------------
+local ui = { tabs = {}, groups = {}, bagchips = {}, ctl = {}, rows = {}, list = nil, sb = nil }
+
+local curWin = WIN  -- which window the drawing helpers write to (the identify card borrows them)
+local function textW(font, s) return WindowTextWidth(curWin, font, s) end
+local function text(font, s, x, y, col) return WindowText(curWin, font, s, x, y, 0, 0, col, false) end
+local function fillRect(x1, y1, x2, y2, col) WindowRectOp(curWin, 2, x1, y1, x2, y2, col) end
+
+local function fit(font, s, maxw)
+	if maxw <= 0 then return "" end
+	if textW(font, s) <= maxw then return s end
+	while #s > 1 and textW(font, s .. "..") > maxw do s = s:sub(1, -2) end
+	return s .. ".."
+end
+
+local function chip(P, x, y, label, fg, bg, id, store)
+	local w = textW(FONT, label) + 12
+	fillRect(x, y, x + w, y + lh + 4, bg)
+	text(FONT, label, x + 6, y + 2, fg)
+	if store and id then store[#store + 1] = { id = id, x1 = x, x2 = x + w, y1 = y, y2 = y + lh + 4 } end
+	return x + w
+end
+
+local function hotspot(id, x1, y1, x2, y2, mouseup, tip, mousedown)
+	if WindowMoveHotspot(WIN, id, x1, y1, x2, y2) ~= 0 then
+		WindowAddHotspot(WIN, id, x1, y1, x2, y2, "", "", mousedown or "", "", mouseup or "", tip or "", 1, 0)
+		added[id] = true
+		return true
+	end
+	return false
+end
+
+local function dropHotspot(id)
+	if added[id] then
+		WindowDeleteHotspot(WIN, id)
+		added[id] = nil
+	end
+end
+
+local function setupFonts()
+	WindowFont(WIN, FONT, fontName, fontHeight, false)
+	WindowFont(WIN, FONT_B, fontName, fontHeight, true)
+	lh = WindowFontInfo(WIN, FONT, 1) + 1
+end
+
+local function drawFlags(P, x, y, flags)
+	for ch in flags:gmatch("%a") do
+		local col = FLAG_COLOUR[ch] or ACC.grey
+		fillRect(x, y + 1, x + lh - 3, y + lh + 1, mixC(P.panel, col, 0.38))
+		text(FONT, ch, x + 3, y + 1, mixC(col, P.text, 0.35))
+		x = x + lh - 1
+	end
+	return x
+end
+
+local function flagsWidth(flags)
+	local _, n = flags:gsub("%a", "")
+	return n * (lh - 1)
+end
+
+-- an item name in the colours the game gave it, cut short with ".." if it would not fit
+local function drawRuns(P, runs, x, y, maxw)
+	for _, r in ipairs(runs) do
+		if maxw <= 0 then return end
+		local t = r.text
+		local w = textW(FONT, t)
+		local col = r.col and legible(r.col, P) or P.text
+		if w > maxw then
+			text(FONT, fit(FONT, t, maxw), x, y, col)
+			return
+		end
+		text(FONT, t, x, y, col)
+		x, maxw = x + w, maxw - w
+	end
+end
+
+-- Every row uses the same columns so things line up from row to row:
+--   | count | name ..................... | where | flags | U | (level) |
+-- The widths are worked out from the rows being shown (see computeColumns).
+local COL = { countW = 0, flagsW = 0, uW = 0, levelW = 0, locW = 0, typeW = 0 }
+local bagLabels = {}   -- [bag id] = label, refreshed at the start of every draw
+
+local function locLabel(s)
+	local full = s.loc == -2 and "keyring" or s.loc == -3 and "worn" or (bagLabels[s.loc] or ("bag " .. s.loc))
+	local num = full:match("#(%d+)$")
+	return fit(FONT, num and ("bag #" .. num) or full, 120)
+end
+
+local function computeColumns(rows)
+	local maxCount, maxFlags, anyU, maxLv, locW, typeW = 0, 0, false, 0, 0, 0
+	for _, r in ipairs(rows) do
+		local it
+		if r.slot ~= nil then it = r.it else it = r end   -- an empty worn slot has no item at all
+		if it then
+			if r.count and r.count > maxCount then maxCount = r.count end
+			local _, nf = (it.flags or ""):gsub("%a", "")
+			if nf > maxFlags then maxFlags = nf end
+			if it.unique then anyU = true end
+			local lw = textW(FONT, "(" .. (it.level or 0) .. ")")
+			if lw > maxLv then maxLv = lw end
+			local tw = textW(FONT, TYPE_NAME[it.type] or "?")
+			if tw > typeW then typeW = tw end
+			if r.slot == nil and r.loc and r.loc ~= -1 and view.tab == "all" then
+				local w = textW(FONT, locLabel(r))
+				if w > locW then locW = w end
+			end
+		end
+	end
+	COL.countW = maxCount > 1 and (textW(FONT_B, "x" .. maxCount) + 10) or 0
+	COL.flagsW = maxFlags * (lh - 1)
+	COL.uW = anyU and 20 or 0
+	COL.levelW = maxLv
+	COL.locW = locW
+	COL.typeW = math.min(typeW, 110)
+end
+
+-- the right-hand columns, shared by item rows and worn rows; returns where the name has to stop
+local function drawRightColumns(P, x, y, w, it, loc, count)
+	local rowH = lh + 4
+	local right = x + w - 6
+	local lv = "(" .. it.level .. ")"
+	text(FONT, lv, right - textW(FONT, lv), y + 2, P.muted)      -- level, right-aligned
+	right = right - COL.levelW - 8
+	if COL.uW > 0 then
+		if it.unique then
+			fillRect(right - COL.uW + 4, y + 3, right - COL.uW + 16, y + rowH - 4, mixC(P.panel, ACC.purple, 0.45))
+			text(FONT, "U", right - COL.uW + 6, y + 2, ACC.purple)
+		end
+		right = right - COL.uW
+	end
+	if COL.flagsW > 0 then
+		if it.flags ~= "" then drawFlags(P, right - COL.flagsW, y + 1, it.flags) end  -- flags start at the same x
+		right = right - COL.flagsW - 8
+	end
+	if COL.typeW > 0 then
+		local tn = fit(FONT, TYPE_NAME[it.type] or "?", COL.typeW)
+		text(FONT, tn, right - COL.typeW, y + 2, mixC(TYPE_COLOUR[groupOf(it)], P.text, 0.25))
+		right = right - COL.typeW - 8
+	end
+	if COL.locW > 0 then
+		if loc and loc ~= -1 then text(FONT, locLabel({ loc = loc }), right - COL.locW, y + 2, ACC.teal) end
+		right = right - COL.locW - 8
+	end
+	return right
+end
+
+local function drawStackRow(P, s, x, y, w)
+	local rowH = lh + 4
+	fillRect(x, y, x + w, y + rowH - 1, P.panel)
+	fillRect(x, y, x + 3, y + rowH - 1, TYPE_COLOUR[groupOf(s)])
+	local cx = x + 9
+	if COL.countW > 0 then
+		if s.count > 1 then text(FONT_B, "x" .. s.count, cx, y + 2, ACC.gold) end
+		cx = cx + COL.countW
+	end
+	local right = drawRightColumns(P, x, y, w, s, view.tab == "all" and s.loc or nil, s.count)
+	-- a stack can be opened: "[+]" closed, "[-]" open; its individual items are indented with their serial
+	local tag
+	if s.sub then
+		fillRect(x + 4, y, x + 6, y + rowH - 1, P.muted)
+		cx = cx + 14
+		tag = "#" .. s.ordinal .. "  " .. tostring(s.ids[1])
+	elseif s.count > 1 then
+		tag = s.expanded and "[-]" or "[+]"
+	end
+	if tag then
+		text(FONT, tag, cx, y + 2, s.sub and P.muted or ACC.gold)
+		cx = cx + textW(FONT, tag) + 8
+	end
+	drawRuns(P, s.runs, cx, y + 2, right - cx - 4)
+end
+
+local function drawSlotRow(P, r, x, y, w)
+	local rowH = lh + 4
+	fillRect(x, y, x + w, y + rowH - 1, P.panel)
+	local lab = WEAR_NAME[r.slot] or ("slot " .. r.slot)
+	local labW = textW(FONT, "Right finger") + 14
+	text(FONT, lab, x + 9, y + 2, P.muted)
+	if not r.it then
+		text(FONT, "empty", x + 9 + labW, y + 2, mixC(P.muted, P.panel, 0.4))
+		return
+	end
+	local it = r.it
+	fillRect(x, y, x + 3, y + rowH - 1, TYPE_COLOUR[groupOf(it)])
+	local right = drawRightColumns(P, x, y, w, it, nil, 1)
+	drawRuns(P, it.runs, x + 9 + labW, y + 2, right - (x + 9 + labW))
+end
+
+local function drawScrollbar(P, x, y, h, total, vis)
+	fillRect(x, y, x + SB_W, y + h, P.track)
+	if total <= vis then ui.sb = nil return end
+	local thumbH = math.max(18, math.floor(h * vis / total))
+	local maxScroll = total - vis
+	local ty = y + math.floor((h - thumbH) * view.scroll / maxScroll)
+	fillRect(x, ty, x + SB_W, ty + thumbH, mixC(P.track, P.text, 0.45))
+	ui.sb = { x = x, y = y, h = h, thumbH = thumbH, maxScroll = maxScroll }
+end
+
+local function countCarried()
+	local n, stacks = 0, 0
+	local seen = {}
+	for _, it in pairs(inv) do
+		n = n + 1
+		local k = it.lname .. it.level
+		if not seen[k] then seen[k] = true stacks = stacks + 1 end
+	end
+	return n, stacks
+end
+
+local function draw()
+	local win = InfoWin
+	if not win or not win.bodyleft then return end
+	curWin = WIN
+	setupFonts()
+	local P = palette()
+	win:blank()
+
+	local bl, bt, br, bb = win.bodyleft, win.bodytop, win.bodyright, win.bodybottom
+	local W = br - bl + 1
+	local chipH = lh + 4
+	local left, right = bl + PAD, br - PAD
+
+	local function place(x, y, label, fg, bg, id, store)
+		local w = textW(FONT, label) + 12
+		if x + w > right and x > left then x, y = left, y + chipH + 4 end
+		return chip(P, x, y, label, fg, bg, id, store) + 4, y
+	end
+
+	local nInv = countCarried()
+	local nWorn = 0
+	for _ in pairs(worn) do nWorn = nWorn + 1 end
+	local nBags = #bagList()
+	local nAll = nInv + #keyring
+	for bagId, b in pairs(bags) do
+		if inv[bagId] then nAll = nAll + (b.count or 0) end
+	end
+
+	-- tabs
+	ui.tabs = {}
+	local x, y = left, bt + 6
+	local tabsTop, tabsRight = y, left
+	local counts = { inv = nInv, worn = nWorn, bags = nBags, keyring = #keyring, all = nAll }
+	for _, t in ipairs(TABS) do
+		local sel = (t == view.tab)
+		x, y = place(x, y, TAB_NAMES[t] .. " " .. counts[t], sel and P.bg or P.text, sel and ACC.cyan or P.panel, t, ui.tabs)
+		tabsRight = math.max(tabsRight, x)
+	end
+	hotspot("tabs", left, tabsTop, tabsRight, y + chipH, "IW_tabClick", "Inventory, worn gear, bags, or everything")
+	y = y + chipH + 6
+
+	-- bag chips (Bags tab)
+	ui.bagchips = {}
+	if view.tab == "bags" then
+		x = left
+		local bTop, bRight = y, left
+		-- one bag per line, all lined up on the left. Bags with the same name collapse into one line ("[+]");
+		-- opened, they are listed underneath in two columns
+		local list, members, order = bagList(), {}, {}
+		for _, b in ipairs(list) do
+			if not members[b.lname] then members[b.lname] = {} order[#order + 1] = b.lname end
+			table.insert(members[b.lname], b)
+		end
+		local function count(b) return bags[b.id] and tostring(bags[b.id].count) or "?" end
+		local function line(label, fg, bg, id, lx, ly)
+			local ex = chip(P, lx, ly, label, fg, bg, id, ui.bagchips)
+			bRight = math.max(bRight, ex)
+			return ex
+		end
+		local first = true
+		for _, ln in ipairs(order) do
+			local grp = members[ln]
+			if not first then y = y + chipH + 3 end
+			first = false
+			if #grp == 1 then
+				local sel = grp[1].id == view.bag
+				line(grp[1].label .. " (" .. count(grp[1]) .. ")", sel and P.bg or P.text, sel and ACC.gold or P.panel, grp[1].id, left, y)
+			else
+				local base = grp[1].label:gsub(" #%d+$", "")
+				local open, holdsSel = view.bagOpen[ln], false
+				for _, b in ipairs(grp) do if b.id == view.bag then holdsSel = true end end
+				local hot = holdsSel and not open
+				line(base .. " x" .. #grp .. (open and " [-]" or " [+]"), hot and P.bg or P.text,
+					hot and ACC.gold or mixC(P.panel, ACC.gold, 0.25), "grp:" .. ln, left, y)
+				if open then
+					local labels, cw = {}, 0
+					for i, b in ipairs(grp) do
+						labels[i] = "bag #" .. b.label:match("#(%d+)$") .. " (" .. count(b) .. ")"
+						cw = math.max(cw, textW(FONT, labels[i]) + 12)
+					end
+					for i, b in ipairs(grp) do
+						local col = (i - 1) % 2
+						if col == 0 then y = y + chipH + 3 end
+						local sel = b.id == view.bag
+						line(labels[i], sel and P.bg or P.text, sel and ACC.gold or P.panel, b.id, left + 16 + col * (cw + 6), y)
+					end
+				end
+			end
+		end
+		if #order > 0 then y = y + chipH + 6 end
+		x = left
+		x, y = place(x, y, "Read bags from the game", ACC.green, mixC(P.panel, ACC.green, 0.22), "loadall", ui.bagchips)
+		bRight = math.max(bRight, x)
+		hotspot("bagchips", left, bTop, bRight, y + chipH, "IW_bagClick", "Choose a bag to look inside")
+		y = y + chipH + 6
+	else
+		dropHotspot("bagchips")
+	end
+
+	-- type groups (every tab)
+	ui.groups = {}
+	if true then
+		x = left
+		local gTop, gRight = y, left
+		for _, g in ipairs(GROUPS) do
+			local sel = (g == view.group)
+			x, y = place(x, y, GROUP_NAMES[g], sel and P.bg or P.text, sel and ACC.green or P.panel, g, ui.groups)
+			gRight = math.max(gRight, x)
+		end
+		hotspot("groups", left, gTop, gRight, y + chipH, "IW_groupClick", "Filter by kind of item")
+		y = y + chipH + 6
+	else
+		dropHotspot("groups")
+	end
+
+	-- where the gear is worn (only while Gear is chosen)
+	ui.slots = {}
+	if view.group == "gear" then
+		x = left
+		local sTop, sRight = y, left
+		for _, sl in ipairs(SLOTS) do
+			local sel = (sl == view.slot)
+			x, y = place(x, y, SLOT_NAMES[sl], sel and P.bg or P.text, sel and ACC.orange or P.panel, sl, ui.slots)
+			sRight = math.max(sRight, x)
+		end
+		hotspot("slots", left, sTop, sRight, y + chipH, "IW_slotClick", "Filter gear by where it is worn")
+		y = y + chipH + 6
+	else
+		dropHotspot("slots")
+	end
+
+	-- controls
+	ui.ctl = {}
+	x = left
+	x, y = place(x, y, "Sort: " .. SORT_NAMES[view.sort], P.text, P.panel, "c_sort", ui.ctl)
+	if view.tab == "worn" then
+		x, y = place(x, y, (view.empty and "[x]" or "[ ]") .. " Empty slots", P.text, P.panel, "c_empty", ui.ctl)
+		x, y = place(x, y, "Read from the game", P.text, P.panel, "c_readeq", ui.ctl)
+	end
+	x, y = place(x, y, "Refresh", ACC.green, mixC(P.panel, ACC.green, 0.22), "c_refresh", ui.ctl)
+	x, y = place(x, y, "Help", P.text, P.panel, "c_help", ui.ctl)
+	if view.filter ~= "" or view.q then
+		x, y = place(x, y, "Search: " .. (view.q and view.q.raw or view.filter) .. "  x", ACC.purple, mixC(P.panel, ACC.purple, 0.30), "c_clear", ui.ctl)
+	end
+	local wanted = {}
+	for _, r in ipairs(ui.ctl) do
+		wanted[r.id] = true
+		local tips = { c_sort = "Change the sort order", c_empty = "Show or hide empty slots", c_refresh = "Reload from the game", c_help = "Print the list of commands in the main window",
+			c_clear = "Clear the search", c_readeq = "Ask the game what you are wearing (your own equipment display will also print it)" }
+		hotspot(r.id, r.x1, r.y1, r.x2, r.y2, "IW_ctlClick", tips[r.id])
+	end
+	for _, id in ipairs({ "c_empty", "c_clear", "c_readeq" }) do
+		if not wanted[id] then dropHotspot(id) end
+	end
+	y = y + chipH + 8
+
+	-- the list (a details card, when one is open, takes the space below it)
+	local footH = lh + 8
+	local detH = view.detail and ((#view.detail.lines + 1) * (lh + 2) + 14) or 0
+	local listTop, listBottom = y, bb - footH - (detH > 0 and detH + 4 or 0)
+	local rows = currentRows()
+	ui.rows = rows
+	bagLabels = {}
+	for _, b in ipairs(bagList()) do bagLabels[b.id] = b.label end
+	computeColumns(rows)
+
+	local n = math.max(1, math.min(2, math.floor((W - 2 * PAD - SB_W) / 420)))
+	local cw = math.floor((W - 2 * PAD - SB_W - 4 - (n - 1) * 4) / n)
+	if cw < 400 then COL.typeW = 0 end   -- not enough room for the type column in a narrow window
+	local rowH = lh + 4
+	local visLines = math.max(1, math.floor((listBottom - listTop) / (rowH + 1)))
+	local totalLines = math.ceil(#rows / n)
+	view.scroll = math.max(0, math.min(view.scroll, math.max(0, totalLines - visLines)))
+
+	for line = 0, visLines - 1 do
+		for col = 0, n - 1 do
+			local r = rows[(view.scroll + line) * n + col + 1]
+			if r then
+				local rx, ry = left + col * (cw + 4), listTop + line * (rowH + 1)
+				if r.slot ~= nil then drawSlotRow(P, r, rx, ry, cw) else drawStackRow(P, r, rx, ry, cw) end
+			end
+		end
+	end
+
+	-- messages when there is nothing to list
+	local msg
+	if view.tab == "keyring" and #keyring == 0 then
+		msg = (dinv.err and keyringSource ~= "game") and "Reading the keyring..." or "Nothing on the keyring."
+	elseif view.tab == "bags" and not view.bag then
+		msg = (nBags == 0) and "You are not carrying any bags." or "Choose a bag above to look inside."
+	elseif view.tab == "bags" and view.bag and not bags[view.bag] then
+		msg = "Reading the bag..."
+	elseif view.tab == "worn" and not loaded.eq then
+		msg = "Reading your equipment..."
+	elseif view.tab ~= "worn" and not loaded.inv then
+		msg = "Reading your inventory..."
+	elseif #rows == 0 then
+		msg = "Nothing matches."
+	end
+	if msg then text(FONT, msg, left, listTop + 4, P.muted) end
+
+	ui.list = { x = left, y = listTop, w = n * cw + (n - 1) * 4, h = visLines * (rowH + 1), cols = n, cw = cw, rowH = rowH + 1, lines = visLines }
+	drawScrollbar(P, br - PAD - SB_W + 1, listTop, visLines * (rowH + 1) - 1, totalLines, visLines)
+
+	-- details card
+	if view.detail then
+		local dy = listBottom + 4
+		local dw = W - 2 * PAD
+		fillRect(left, dy, left + dw, dy + detH, P.panel)
+		WindowRectOp(WIN, 1, left, dy, left + dw, dy + detH, P.edge)
+		text(FONT_B, fit(FONT_B, view.detail.title, dw - 130), left + 8, dy + 5, P.text)
+		local hint = "click to close"
+		text(FONT, hint, left + dw - 8 - textW(FONT, hint), dy + 5, P.muted)
+		local ly = dy + 7 + lh + 2
+		for _, ln in ipairs(view.detail.lines) do
+			text(FONT, ln[1], left + 8, ly, P.muted)
+			text(FONT, fit(FONT, ln[2], dw - 110), left + 100, ly, P.text)
+			ly = ly + lh + 2
+		end
+		hotspot("detail", left, dy, left + dw, dy + detH, "IW_detailClick", "Click to close")
+	else
+		dropHotspot("detail")
+	end
+
+	-- footer
+	local fy = bb - footH + 4
+	local foot = "Showing " .. #rows .. (view.tab == "worn" and " slots" or " stacks")
+	if view.tab == "inv" then foot = foot .. "  |  " .. nInv .. " items carried" end
+	if view.tab == "worn" then foot = foot .. "  |  from " .. (wornSource == "dinv" and "dinv" or "the game") end
+	if view.tab == "all" then foot = foot .. "  |  " .. nAll .. " items loaded" end
+	if view.tab == "bags" and view.bag and bags[view.bag] then
+		local b = bags[view.bag]
+		foot = foot .. "  |  " .. (b.count or 0) .. " in the bag, from " .. (b.source == "game" and "the game" or "dinv")
+	end
+	text(FONT, fit(FONT, foot, W - 2 * PAD), left, fy, P.muted)
+
+	if hotspot("list", ui.list.x, ui.list.y, ui.list.x + ui.list.w, ui.list.y + ui.list.h, "IW_listClick", "Click an item for its actions") then
+		WindowScrollwheelHandler(WIN, "list", "IW_wheel")
+	end
+	if ui.sb then
+		if hotspot("sb", ui.sb.x, ui.sb.y, ui.sb.x + SB_W, ui.sb.y + ui.sb.h, "", "Drag to scroll", "IW_sbDown") then
+			WindowDragHandler(WIN, "sb", "IW_sbMove", "IW_sbRelease", 0)
+			WindowScrollwheelHandler(WIN, "sb", "IW_wheel")
+		end
+	else
+		dropHotspot("sb")
+	end
+
+	win:dress_window()
+end
+
+function safeDraw()
+	local ok, err = pcall(draw)
+	if not ok and err ~= IW_lastErr then
+		IW_lastErr = err
+		ColourNote("red", "", "Inventory window draw error: " .. tostring(err))
+	end
+end
+
+---------------------------------------------------------------------------
+-- Window
+---------------------------------------------------------------------------
+local function ensureWindow()
+	if InfoWin and WindowInfo(WIN, 1) then return end
+	added = {}
+	InfoWin = ThemedBasicWindow(
+		WIN, 260, 140, 560, 560, "Inventory", "center", true,
+		1, function() safeDraw() end, function() safeDraw() end,
+		function() shown = false InfoWin = nil added = {} end,
+		fontName, fontHeight, true
+	)
+	table.insert(InfoWin.menu_table, "Refresh from the game")
+	table.insert(InfoWin.menu_handlers, function() IW_refresh() end)
+	table.insert(InfoWin.menu_table, "Load all bags")
+	table.insert(InfoWin.menu_handlers, function() loadAllBags() end)
+	table.insert(InfoWin.menu_table, "Help")
+	table.insert(InfoWin.menu_handlers, function() IW_help() end)
+	table.insert(InfoWin.menu_table, "Close")
+	table.insert(InfoWin.menu_handlers, function() IW_hide() end)
+	setupFonts()
+end
+
+function IW_refresh()
+	dinvRead()
+	askInv()
+	if dinv.err then askEq() end   -- only when dinv cannot tell us what is worn
+	if dinv.err and view.tab == "keyring" then askKeyring() end
+	if view.bag then askBag(view.bag) end
+end
+
+-- the Worn tab's "Read from the game" button: your own equipment formatter will print its list, as it does for "eq"
+function IW_readWornFromGame()
+	askEq()
+end
+
+function IW_show()
+	ensureWindow()
+	shown = true
+	InfoWin:show()
+	pcall(function() InfoWin:bring_to_front() end)
+	if not dinv.loadedAt then dinvRead() end   -- bag contents, the keyring and what you wear: no commands needed
+	if not loaded.inv then askInv() end
+	if not loaded.eq then askEq() end          -- only reached when dinv's database could not be read
+	safeDraw()
+end
+
+function IW_hide()
+	shown = false
+	if InfoWin then InfoWin:hide() end
+end
+
+---------------------------------------------------------------------------
+-- Mouse
+---------------------------------------------------------------------------
+local function within(r, x, y) return x >= r.x1 and x <= r.x2 and y >= r.y1 and y <= r.y2 end
+
+local function rightClickWindow(flags)
+	if bit.band(flags, miniwin.hotspot_got_rh_mouse) ~= 0 then
+		-- right click on header chips: the usual window menu
+		if InfoWin then InfoWin:right_click_menu("body") end
+		return true
+	end
+	return false
+end
+
+local function pick(list, id)
+	local x, y = WindowInfo(WIN, 14), WindowInfo(WIN, 15)
+	for _, r in ipairs(list) do
+		if within(r, x, y) then return r.id end
+	end
+end
+
+local function setTab(t)
+	view.tab = t
+	view.scroll = 0
+	saveView()
+	if t == "bags" and not view.bag then
+		local b = bagList()[1]
+		if b then view.bag = b.id end
+	end
+	if t == "bags" and view.bag and not bags[view.bag] then askBag(view.bag) end
+	if t == "keyring" and dinv.err and keyringSource ~= "game" then askKeyring() end
+	requestRedraw()
+end
+
+function IW_tabClick(flags, id)
+	if rightClickWindow(flags) then return end
+	local t = pick(ui.tabs, id)
+	if t then setTab(t) end
+end
+
+function IW_groupClick(flags, id)
+	if rightClickWindow(flags) then return end
+	local g = pick(ui.groups, id)
+	if g then
+		view.group = g
+		view.scroll = 0
+		saveView()
+		requestRedraw()
+	end
+end
+
+function IW_slotClick(flags, id)
+	if rightClickWindow(flags) then return end
+	local sl = pick(ui.slots, id)
+	if sl then
+		view.slot = sl
+		view.scroll = 0
+		saveView()
+		requestRedraw()
+	end
+end
+
+function IW_bagClick(flags, id)
+	if rightClickWindow(flags) then return end
+	local b = pick(ui.bagchips, id)
+	if b == "loadall" then
+		loadAllBags()
+	elseif type(b) == "string" and b:sub(1, 4) == "grp:" then
+		local ln = b:sub(5)
+		view.bagOpen[ln] = (not view.bagOpen[ln]) or nil
+		requestRedraw()
+	elseif b then
+		view.bag = b
+		view.scroll = 0
+		if not bags[b] then askBag(b) end
+		requestRedraw()
+	end
+end
+
+local function cycleSort()
+	for i, s in ipairs(SORTS) do
+		if s == view.sort then
+			view.sort = SORTS[(i % #SORTS) + 1]
+			break
+		end
+	end
+	view.scroll = 0
+	saveView()
+end
+
+function IW_ctlClick(flags, id)
+	if rightClickWindow(flags) then return end
+	if id == "c_sort" then cycleSort() requestRedraw()
+	elseif id == "c_empty" then view.empty = not view.empty view.scroll = 0 saveView() requestRedraw()
+	elseif id == "c_refresh" then IW_refresh()
+	elseif id == "c_help" then IW_help()
+	elseif id == "c_readeq" then IW_readWornFromGame()
+	elseif id == "c_clear" then view.filter = "" view.q = nil view.scroll = 0 requestRedraw() end
+end
+
+local function rowAt()
+	local L = ui.list
+	if not L then return nil end
+	local x, y = WindowInfo(WIN, 14), WindowInfo(WIN, 15)
+	local line = math.floor((y - L.y) / L.rowH)
+	local col = math.floor((x - L.x) / (L.cw + 4))
+	if line < 0 or col < 0 or col >= L.cols then return nil end
+	return ui.rows[(view.scroll + line) * L.cols + col + 1]
+end
+
+-- a card of what dinv knows about the item (weight, score, material, modifiers...), no command needed
+local function showDetails(r)
+	if not dinv.loadedAt then dinvRead() end
+	local it = r.it or {}
+	local id = (r.ids and r.ids[1]) or it.id
+	local name = r.name or it.name or "?"
+	local level = r.level or it.level
+	local d = id and dinv.items[id]
+	local lines = {}
+	local function add(label, value)
+		if value ~= nil and tostring(value) ~= "" and #lines < 10 then lines[#lines + 1] = { label, tostring(value) } end
+	end
+	if r.count and r.count > 1 then add("Stack", r.count .. " identical items") end
+	if d then
+		add("Type", d.type)
+		add("Wearable", d.wearable)
+		add("Weight", d.weight)
+		add("Worth", d.worth and commas(d.worth))
+		add("Score", d.score)
+		add("Material", d.material)
+		add("Flags", d.flags)
+		add("Modifiers", d.affect_mods)
+		add("Spells", d.spells)
+		add("Keywords", d.keywords)
+	else
+		-- no dinv data: show what the game's own list says, and point at Identify for the rest
+		local src = r.it or r
+		add("Type", TYPE_NAME[src.type or -1])
+		add("Level", level)
+		add("Flags", src.flags)
+		add("Serial", id)
+		lines[#lines + 1] = { "", "Choose Identify for the full description." }
+	end
+	view.detail = { title = name .. (level and ("  (" .. level .. ")") or ""), lines = lines }
+	requestRedraw()
+end
+
+function IW_detailClick()
+	view.detail = nil
+	requestRedraw()
+end
+
+-- what you can do with the row that was clicked
+local function actionsFor(r)
+	local acts = {}
+	local function add(label, fn) acts[#acts + 1] = { label = label, fn = fn } end
+	if r.slot ~= nil then
+		if not r.it then return acts end
+		add("Remove", function() Send("remove " .. r.it.id) end)
+		add("Identify", function() IW_identify(r.it.id, true) end)
+		add("Details", function() showDetails(r) end)
+		return acts
+	end
+	local id = r.ids[1]
+	if r.loc == -3 then                              -- worn (found by a search)
+		add("Remove", function() Send("remove " .. id) end)
+		add("Identify", function() IW_identify(id, true) end)
+		add("Details", function() showDetails(r) end)
+		return acts
+	end
+	if r.loc == -2 then                              -- on the keyring
+		add("Details", function() showDetails(r) end)
+		return acts
+	end
+	if r.loc and r.loc >= 0 then                     -- inside a bag
+		add("Get (" .. bagLabel(r.loc) .. ")", function() Send("get " .. id .. " " .. r.loc) end)
+		if r.count > 1 then
+			add("Get all " .. r.count, function()
+				for _, one in ipairs(r.ids) do Send("get " .. one .. " " .. r.loc) end
+			end)
+		end
+		-- the game cannot identify something that is inside a container: Details (from dinv) needs no command,
+		-- or the item can be taken out, identified and put straight back
+		add("Details", function() showDetails(r) end)
+		add("Take out, identify, put back", function()
+			if identifyBlocked() then IW_identify(id) return end
+			Send("get " .. id .. " " .. r.loc)
+			IW_identify(id)
+			Send("put " .. id .. " " .. r.loc)
+		end)
+		return acts
+	end
+	if r.type == 11 then
+		add("Open (list contents)", function() view.tab = "bags" view.bag = id view.scroll = 0 saveView() askBag(id) requestRedraw() end)
+	end
+	if groupOf(r) == "gear" then add("Wear / wield", function() Send("wear " .. id) end) end
+	add("Identify", function() IW_identify(id) end)
+	add("Details", function() showDetails(r) end)
+	if r.type ~= 11 then
+		for i, b in ipairs(bagList()) do
+			if i > 6 then break end
+			add("Put in " .. b.label, function() Send("put " .. id .. " " .. b.id) end)
+		end
+	end
+	add("Drop", function() Send("drop " .. id) end)
+	return acts
+end
+
+function IW_listClick(flags, id)
+	local r = rowAt()
+	if not r then
+		rightClickWindow(flags)
+		return
+	end
+	local acts = actionsFor(r)
+	-- a stack opens into its individual items when clicked (consumables keep their menu, with "Show each" on top)
+	if r.slot == nil and not r.sub and r.count and r.count > 1 and r.key then
+		local function flip() view.open[r.key] = (not view.open[r.key]) or nil requestRedraw() end
+		if groupOf(r) ~= "use" then flip() return end
+		table.insert(acts, 1, { label = (r.expanded and "Collapse" or ("Show each of " .. r.count)), fn = flip })
+	end
+	if #acts == 0 then return end
+	local labels = {}
+	for i, a in ipairs(acts) do labels[i] = a.label end
+	local choice = tonumber(WindowMenu(WIN, WindowInfo(WIN, 14), WindowInfo(WIN, 15), "!" .. table.concat(labels, "|")))
+	if choice and acts[choice] then acts[choice].fn() end
+end
+
+local function scrollBy(delta)
+	if not ui.list then return end
+	view.scroll = math.max(0, view.scroll + delta)
+	requestRedraw()
+end
+
+function IW_wheel(flags, id)
+	scrollBy(bit.band(flags, 0x100) ~= 0 and 3 or -3)
+end
+
+local function sbToScroll()
+	local S = ui.sb
+	if not S then return end
+	local y = WindowInfo(WIN, 18) - WindowInfo(WIN, 11) - S.y - S.thumbH / 2
+	local frac = math.max(0, math.min(1, y / math.max(1, S.h - S.thumbH)))
+	view.scroll = math.floor(frac * S.maxScroll + 0.5)
+	requestRedraw()
+end
+
+function IW_sbDown() sbToScroll() end
+function IW_sbMove() sbToScroll() end
+function IW_sbRelease() sbToScroll() end
+
+---------------------------------------------------------------------------
+-- Commands and events
+---------------------------------------------------------------------------
+local GROUP_WORDS = { gear = "gear", consumables = "use", use = "use", containers = "bags", loot = "loot",
+	portals = "portal", portal = "portal", other = "other", any = "any" }
+local TAB_WORDS = { inventory = "inv", inv = "inv", worn = "worn", eq = "worn", bags = "bags", bag = "bags",
+	keyring = "keyring", everywhere = "all", all = "all" }
+
+local HELP = {
+	{ "Window", "" },
+	{ "invwin", "show / hide the window" },
+	{ "invwin inv|worn|bags|keyring|all", "choose a tab (all = everything loaded)" },
+	{ "invwin load", "read the inside of every bag (otherwise bags come free from dinv)" },
+	{ "invwin refresh | invwin empty", "reload | show or hide empty worn slots" },
+	{ "Finding things", "" },
+	{ "invwin <text>", "SEARCH carried items, loaded bags, the keyring and what you wear, e.g. invwin aardwolf" },
+	{ "invwin type:potion spell:lotus", "targeted search: any mix of the keys below, plus plain words" },
+	{ "   type:<kind>", "weapon, armor, potion, container, treasure ... (a prefix like pot works)" },
+	{ "   wear:<slot>", "head, neck, arms, hands, finger, wield, hold ... (the same names as the slot chips)" },
+	{ "   spell:<text>", "items carrying that spell, from dinv's data (spell:lotus finds Black Lotus)" },
+	{ "   lvl:10  lvl:1-10  lvl:1 lvl:10  lvl:10+  lvl:<=10", "exact level, or a range" },
+	{ "   flag:<word>", "glow, hum, magic, invis, unique ...      in:<where>: inv, worn, keyring or part of a bag name" },
+	{ "   \"quoted words\"", "keep a phrase together, e.g. spell:\"black lotus\"" },
+	{ "invwin clear", "remove the search (or click the purple Search chip)" },
+	{ "invwin gear|use|containers|loot|portals|other|any", "choose a kind of item" },
+	{ "invwin slot head|neck|fingers|weapon|held|...", "gear worn in that slot (the second chip row under Gear)" },
+	{ "invwin sort level|name|type", "sort order" },
+	{ "Items", "" },
+	{ "click an item", "menu: wear, remove, get, put in a bag, drop, identify, details" },
+	{ "i / inventory", "stacked list with counts, flag letters and levels in the main window" },
+	{ "invwin objflag [kept invis magic glow hum tempered cursed envenomed weakened nolocate showplus|all]", "hide those flags in the [KMGH] form (letters work too); showplus marks items that lost a flag; no argument lists the options" },
+	{ "invwin shorterflags", "flags in the printed list: (K)(M)(G)(H) by default, [KMGH] when on" },
+	{ "id <item>", "the identify box also opens as a card (identify and lore work too)" },
+	{ "invwin identify wish|cast 'spell'|lore|room", "how the window identifies items; no argument shows the choices" },
+	{ "right-click the window", "refresh, load bags, help, close" },
+}
+
+function IW_help()
+	Note("")
+	ColourNote("cyan", "", "InventoryWindow - commands")
+	for _, h in ipairs(HELP) do
+		if h[2] == "" then
+			ColourNote("yellow", "", h[1] .. ":")
+		else
+			ColourTell("white", "", "  " .. h[1])
+			ColourNote("silver", "", "  - " .. h[2])
+		end
+	end
+	Note("")
+end
+
+function IW_command(name, line, wildcards)
+	local arg = trim((wildcards[1] or ""):gsub("%c", "")):lower()
+	if arg == "" then
+		if shown then IW_hide() else IW_show() end
+	elseif arg == "shorterflags" then
+		shortFlags = not shortFlags
+		SetVariable("shortflags", shortFlags and "1" or "0")
+		ColourNote("cyan", "", "InventoryWindow: the printed inventory now shows flags as " ..
+			(shortFlags and "[KMGH]" or "(K)(M)(G)(H)") .. ".  (invwin shorterflags to switch back)")
+	elseif arg:match("^objflags?$") or arg:match("^objflags?%s") then
+		local NAMES = { showplus = "+", plus = "+", ["+"] = "+" }
+		local ALT = { keep = "K", glowing = "G", humming = "H", invisible = "I" }
+		for _, o in ipairs(FLAG_OPTIONS) do NAMES[o[1]:lower()] = o[2] NAMES[o[2]:lower()] = o[2] end
+		for k, v in pairs(ALT) do NAMES[k] = v end
+		local bad = {}
+		local rest = arg:gsub("^objflags?%s*", "")
+		for w in rest:gmatch("[^%s,]+") do
+			if w == "all" or w == "reset" then hiddenFlags = {} showPlus = false
+			else
+				local ch = NAMES[w]
+				if ch == "+" then showPlus = not showPlus
+				elseif ch then hiddenFlags[ch] = (not hiddenFlags[ch]) or nil
+				else bad[#bad + 1] = w end
+			end
+		end
+		local keep = {}
+		for ch in pairs(hiddenFlags) do keep[#keep + 1] = ch end
+		table.sort(keep)
+		SetVariable("hiddenflags", table.concat(keep))
+		SetVariable("showplus", showPlus and "1" or "0")
+		if #bad > 0 then ColourNote("orange", "", "invwin objflag: not an option: " .. table.concat(bad, " ")) end
+		ColourNote("cyan", "", "Option Name     Status Description")
+		ColourNote("silver", "", "=============== ====== ==================================================")
+		for _, o in ipairs(FLAG_OPTIONS) do
+			ColourNote(hiddenFlags[o[2]] and "lime" or "silver", "",
+				string.format("%-15s %6s hide (%s) for %s", o[1], hiddenFlags[o[2]] and "On" or "Off", o[2], o[3]))
+		end
+		ColourNote(showPlus and "lime" or "silver", "",
+			string.format("%-15s %6s show (+) when flags are hidden", "Showplus", showPlus and "On" or "Off"))
+		ColourNote("silver", "", "")
+		ColourNote("silver", "", "  invwin objflag kept magic   toggles those options (names or letters);  invwin objflag all  turns every option off")
+		ColourNote("silver", "", "  These apply to the [KMGH] form of the printed list" ..
+			(shortFlags and "." or " (turn it on with invwin shorterflags)."))
+	elseif arg == "help" or arg == "?" or arg == "commands" then IW_help()
+	elseif arg == "identify" or arg:match("^identify ") then setIdentifyMethod(arg:gsub("^identify%s*", ""))
+	elseif arg == "show" or arg == "open" then IW_show()
+	elseif arg == "hide" or arg == "close" then IW_hide()
+	elseif arg == "refresh" then IW_show() IW_refresh()
+	elseif arg == "clear" then view.filter = "" view.q = nil view.scroll = 0 IW_show()
+	elseif arg == "empty" then view.empty = not view.empty saveView() IW_show()
+	elseif arg == "load" or arg == "loadall" then IW_show() loadAllBags()
+	elseif TAB_WORDS[arg] then setTab(TAB_WORDS[arg]) IW_show()
+	elseif arg:match("^slot ") then
+		local sl = arg:match("^slot%s+(%a+)")
+		sl = ({ ears = "ear", wrists = "wrist", fingers = "finger", weapon = "wield", held = "hold", medals = "medal" })[sl] or sl
+		local ok = oneOf(SLOTS, sl, nil)
+		if ok then view.group = "gear" view.slot = ok view.scroll = 0 saveView() IW_show()
+		else ColourNote("orange", "", "invwin slot <" .. table.concat(SLOTS, "|") .. ">") end
+	elseif GROUP_WORDS[arg] then view.group = GROUP_WORDS[arg] view.scroll = 0 saveView() IW_show()
+	elseif arg:match("^sort ") then
+		local s = oneOf(SORTS, arg:match("^sort%s+(%a+)"), nil)
+		if s then view.sort = s saveView() IW_show() else ColourNote("orange", "", "invwin sort <level|name|type>") end
+	else
+		local q, msg = parseQuery(arg)
+		if not q then
+			ColourNote("orange", "", "invwin: " .. msg .. "  (invwin help)")
+			return
+		end
+		view.filter, view.q = "", q
+		view.scroll = 0
+		view.group = "any"
+		view.slot = "any"
+		view.tab = "all" -- a search looks everywhere that is loaded
+		IW_show()
+	end
+end
+
+function OnPluginConnect()
+	inv, worn, bags, pending, keyring = {}, {}, {}, {}, {}
+	loaded = { inv = false, eq = false }
+	dinv.items, dinv.loadedAt, view.detail, wornSource = {}, nil, nil, nil
+	keyringSource = nil
+	fetchedAt, view.bag = nil, nil
+	if shown then IW_show() end
+end
+
+function OnPluginClose() IW_hide() end
+function OnPluginDisable() IW_hide() end
+
+---------------------------------------------------------------------------
+-- "i": the carried list as text in the main window, stacked and with the flags as coloured letters
+---------------------------------------------------------------------------
+printInventory = function()
+	if not dinv.loadedAt then dinvRead() end   -- for the keyring count at the end
+	local list = {}
+	for _, it in pairs(inv) do
+		it.loc = -1
+		list[#list + 1] = it
+	end
+	ColourNote("silver", "", "")
+	if #list == 0 then
+		ColourNote("silver", "", "You are carrying nothing.")
+	else
+		ColourNote("silver", "", "Inventory:")
+		ColourNote("silver", "", "")
+		local stacks = stackItems(list)
+		table.sort(stacks, function(a, b) return a.place < b.place end)
+		local maxFlags = 0
+		-- the printed width of a stack's flags; with the game's flags in full the names have different lengths
+		local function plusOf(flags)   -- a "+" after the letters when some of this item's flags were hidden
+			return shortFlags and showPlus and visibleFlags(flags, true) ~= flags
+		end
+		local function flagWidth(flags)
+			local w = 0
+			for ch in visibleFlags(flags, shortFlags):gmatch("%a") do
+				w = w + ((not shortFlags and gameFlagsFull) and (#(FLAG_FULL[ch] or ch) + 2) or (shortFlags and 1 or 3))
+			end
+			return w + (plusOf(flags) and 1 or 0)
+		end
+		for _, s in ipairs(stacks) do
+			local w = flagWidth(s.flags)
+			if w > maxFlags then maxFlags = w end
+		end
+		for _, s in ipairs(stacks) do
+			ColourTell("white", "", s.count > 1 and string.format("(%2d) ", s.count) or "     ")
+			-- the flag brackets are padded to one width so every name starts in the same column
+			local nf = flagWidth(s.flags)
+			if maxFlags > 0 then
+				if shortFlags then                                   -- [KMGH]
+					if nf > 0 then
+						ColourTell("yellow", "", "[")
+						for ch in visibleFlags(s.flags, true):gmatch("%a") do
+							ColourTell(RGBColourToName(FLAG_COLOUR[ch] or ACC.grey), "", ch)
+						end
+						if plusOf(s.flags) then ColourTell("yellow", "", "+") end
+						ColourTell("yellow", "", string.rep(" ", maxFlags - nf) .. "] ")
+					else
+						ColourTell("white", "", string.rep(" ", maxFlags + 3))
+					end
+				else                                                 -- (K)(M)(G)(H), as the game prints them
+					for ch in s.flags:gmatch("%a") do
+						ColourTell("yellow", "", "(")
+						ColourTell(RGBColourToName(FLAG_COLOUR[ch] or ACC.grey), "", gameFlagsFull and (FLAG_FULL[ch] or ch) or ch)
+						ColourTell("yellow", "", ")")
+					end
+					ColourTell("white", "", string.rep(" ", maxFlags - nf + 1))
+				end
+			end
+			for _, r in ipairs(s.runs) do
+				ColourTell(RGBColourToName(r.col or CODE.w), "", r.text)
+			end
+			ColourTell("white", "", " (")
+			ColourTell("lime", "", tostring(s.level))
+			ColourTell("white", "", ")")
+			Note("")
+		end
+	end
+	if #keyring > 0 then
+		ColourNote("cyan", "", string.format("(%2d) ", #keyring), "white", "", "** Items on Keyring **")
+	end
+	ColourNote("silver", "", "")
+end
+
+local OK_STATES = { [3] = true, [8] = true, [9] = true, [11] = true } -- the states the serials plugin accepts too
+
+function IW_inventoryCmd(name, line, wc)
+	local state = tonumber(gmcp("char.status.state"))
+	if not IsConnected() or not (state and OK_STATES[state]) then
+		Send(line)  -- asleep or similar: let the game answer in its own words
+		return
+	end
+	printAfter = true
+	pending.inv = nil
+	askInv()
+	DoAfterSpecial(8, "IW_printTimeout()", sendto.script)
+end
+
+function IW_printTimeout()
+	if printAfter then
+		printAfter = false
+		ColourNote("orange", "", "Inventory: the game did not answer in time.")
+	end
+end
+
+---------------------------------------------------------------------------
+-- "id <item>": the identify box as a card
+---------------------------------------------------------------------------
+local IDWIN = "IdentifyCard"
+local idWin, idShown = nil, false
+local idArmed, idCap, idModel = nil, nil, nil
+
+-- the "Identify" item in the window's menus: send the identify and let the card open for its answer
+-- how items get identified: "wish" (the id command), "room" (the id command, only in the identify room),
+-- "lore", or "cast <spell>"
+local IDENTIFY_ROOM = 32611
+local idMethod = GetVariable("idmethod") or "wish"
+
+local function roomNumber() return tonumber(gmcp("room.info.num")) end
+
+-- nil when the chosen way can be used from where you stand, else what is in the way
+identifyBlocked = function()
+	if idMethod == "room" then
+		local n = roomNumber()
+		if n ~= IDENTIFY_ROOM then
+			return "identifying without a wish or spell works only in room " .. IDENTIFY_ROOM .. " (you are in " .. tostring(n or "?") .. ")"
+		end
+	elseif idMethod == "lore" then
+		local terrain = tostring(gmcp("room.info.terrain") or ""):lower()
+		local where = (tostring(gmcp("room.info.name") or "") .. " " .. tostring(gmcp("room.info.details") or "")):lower()
+		if not (terrain:find("city", 1, true) or where:find("donation", 1, true)) then
+			return "lore works only in a donation room or in a city area (terrain here: " .. (terrain ~= "" and terrain or "unknown") .. ")"
+		end
+	end
+	return nil
+end
+
+local function identifyCommand(id, isWorn)
+	local tail = tostring(id) .. (isWorn and " worn" or "")   -- an item you wear is named "<serial> worn"
+	if idMethod == "lore" then return "lore " .. tail end
+	local spell = idMethod:match("^cast (.+)$")
+	if spell then return "cast '" .. spell .. "' " .. tail end
+	return "id " .. tail
+end
+
+function IW_identify(id, isWorn)
+	local why = identifyBlocked()
+	if why then
+		ColourNote("orange", "", "InventoryWindow: " .. why .. ".  (invwin identify)")
+		return false
+	end
+	idArmed = os.clock()
+	Send(identifyCommand(id, isWorn))
+	return true
+end
+
+setIdentifyMethod = function(arg)
+	arg = trim(arg or "")
+	local m
+	if arg == "wish" or arg == "id" or arg == "identify" then m = "wish"
+	elseif arg == "room" then m = "room"
+	elseif arg == "lore" then m = "lore"
+	else
+		local spell = arg:match("^cast%s+(.+)$")
+		if spell then m = "cast " .. spell:gsub("^[\'\"]", ""):gsub("[\'\"]$", "") end
+	end
+	if not m then
+		ColourNote("cyan", "", "Identify method: " .. idMethod)
+		ColourNote("silver", "", "  invwin identify wish            - the identify wish / id command (default)")
+		ColourNote("silver", "", "  invwin identify cast 'object read' - cast a spell on the item (any spell name)")
+		ColourNote("silver", "", "  invwin identify lore            - the lore skill (donation rooms and city areas only)")
+		ColourNote("silver", "", "  invwin identify room            - no wish or spell: works only in room " .. IDENTIFY_ROOM)
+		return
+	end
+	idMethod = m
+	SetVariable("idmethod", m)
+	ColourNote("cyan", "", "InventoryWindow: items will be identified with: " .. m)
+end
+
+-- only an identify you typed yourself (or asked for from the window) opens the card, not the ones other
+-- plugins send
+function OnPluginCommandEntered(text_)
+	if text_:match("^%s*id%s+%S") or text_:match("^%s*identify%s+%S") or text_:match("^%s*lore%s+%S")
+		or text_:match("^%s*c[a-z]*%s+['\"][^'\"]*read['\"]") then
+		idArmed = os.clock()
+	end
+	return text_
+end
+
+-- Reads | Label : value |  boxes, where one line can hold several pairs and a line starting with ":"
+-- carries on from the one above. Unknown labels are kept, so a weapon, potion or portal works too.
+local function parseIdentify(lines)
+	local m = { fields = {}, by = {}, notes = {} }
+	local sect = 0
+	for _, ln in ipairs(lines) do
+		if ln:match("^%+") then sect = sect + 1 end
+		if not ln:match("^%+") then
+			local c = (ln:gsub("^|", ""):gsub("|%s*$", ""))
+			c = (c:gsub("%s+$", ""))
+			if c:match("^%s*:") then
+				local extra = (c:gsub("^%s*:%s*", ""))
+				local last = m.fields[#m.fields]
+				if extra ~= "" then
+					-- keywords and flags run on over several lines; anything else is a note ("Items inside weigh...")
+					local lab = last and last.label:lower() or ""
+					if last and (lab == "keywords" or lab == "flags" or last.value:match(",$")) then
+						last.value = last.value .. " " .. extra
+					else m.notes[#m.notes + 1] = extra end
+				end
+			else
+				c = (c:gsub("%s+:", ":"))
+				c = (c:gsub(":%s+", ": "))
+				for cell in (c .. "  "):gmatch("(.-)%s%s+") do
+					cell = trim(cell)
+					if cell ~= "" then
+						local label, value = cell:match("^([^:]-):%s*(.*)$")
+						if label and label ~= "" then
+							local f = { label = label, value = value, sect = sect }
+							m.fields[#m.fields + 1] = f
+							m.by[label:lower()] = f
+						elseif #m.fields > 0 then
+							local last = m.fields[#m.fields]
+							last.parts = last.parts or { last.value }   -- keep the pieces too (enchants are one per line)
+							last.parts[#last.parts + 1] = cell
+							last.value = last.value .. " " .. cell
+						end
+					end
+				end
+			end
+		end
+	end
+	return m
+end
+
+
+local function idNumber(s) return tonumber((tostring(s or ""):gsub(",", ""):match("-?%d+"))) end
+
+local function idSections(m)
+	local sections, member = {}, {}
+	for i, f in ipairs(m.fields) do
+		if (f.label:lower():match("mods$") or f.label:lower():match("^enchants?$")) then
+			local entries = {}
+			local fl, fv = f.value:match("^(.-):%s*(.*)$")
+			if f.parts and f.label:lower():match("^enchants?$") then
+				for _, part in ipairs(f.parts) do if part ~= "" then entries[#entries + 1] = { label = part, value = "" } end end
+			elseif fl and fl ~= "" then entries[1] = { label = fl, value = fv }
+			elseif f.value ~= "" then   -- a comma list: "Dexterity +30, Luck -5"
+				for part in f.value:gmatch("[^,]+") do
+					local pl, pv = trim(part):match("^(.-)%s+([%+%-]%d+)$")
+					entries[#entries + 1] = { label = pl or trim(part), value = pv or "" }
+				end
+			end
+			for j = i + 1, #m.fields do
+				local g = m.fields[j]
+				if g.sect ~= f.sect or g.label:lower():match("mods$") or g.label:lower():match("^enchants?$") then break end
+				entries[#entries + 1] = { label = g.label, value = g.value }
+				member[j] = true
+			end
+			sections[i] = { title = f.label, entries = entries, enchant = f.label:lower():match("^enchants?$") ~= nil }
+		end
+	end
+	return sections, member
+end
+
+-- dry = true measures without drawing; returns the height used
+local function idBuild(P, W, x0, y0, dry)
+	local m = idModel
+	local y = y0
+	local function T(font, s, x, yy, col) if not dry then text(font, s, x, yy, col) end end
+	local function F(x1, y1, x2, y2, col) if not dry then fillRect(x1, y1, x2, y2, col) end end
+
+	local function chips(list, accentOf)
+		local x = x0
+		for _, c in ipairs(list) do
+			local w = textW(FONT, c.text) + 12
+			if x + w > x0 + W and x > x0 then x, y = x0, y + lh + 8 end
+			local acc = c.acc or accentOf and accentOf(c.text) or ACC.grey
+			F(x, y, x + w, y + lh + 4, mixC(P.panel, acc, 0.30))
+			T(FONT, c.text, x + 6, y + 2, mixC(acc, P.text, 0.45))
+			x = x + w + 4
+		end
+		y = y + lh + 10
+	end
+
+	local function field(label) return m.by[label] and m.by[label].value or nil end
+
+	-- title and keywords
+	local name = field("name") or field("keywords") or "item"
+	local _, nameRuns = parseColours(name)
+	T(FONT_B, fit(FONT_B, (parseColours(name)), W), x0, y, P.text)
+	y = y + lh + 3
+	if field("keywords") then
+		T(FONT, fit(FONT, field("keywords"), W), x0, y, P.muted)
+		y = y + lh + 6
+	end
+
+	-- the headline numbers
+	local heads = {}
+	if field("type") then heads[#heads + 1] = { text = field("type"), acc = ACC.teal } end
+	if field("level") then heads[#heads + 1] = { text = "Level " .. field("level"), acc = ACC.blue } end
+	if field("worth") then heads[#heads + 1] = { text = "Worth " .. field("worth"), acc = ACC.gold } end
+	if field("weight") then heads[#heads + 1] = { text = "Weight " .. field("weight"), acc = ACC.grey } end
+	if field("score") and idNumber(field("score")) ~= 0 then heads[#heads + 1] = { text = "Score " .. field("score"), acc = ACC.purple } end
+	if #heads > 0 then chips(heads) end
+
+	-- flags, one chip each
+	if field("flags") then
+		local fl = {}
+		for word in field("flags"):gmatch("[^,]+") do fl[#fl + 1] = { text = trim(word) } end
+		chips(fl)   -- plain chips: the game gives no meaning to flags, so none is invented
+	end
+
+	-- everything else, as label and value (modifier lists become + / - chips)
+	local used = { name = true, keywords = true, type = true, level = true, worth = true, weight = true, score = true,
+		flags = true, id = true, capacity = true, holding = true, ["heaviest item"] = true, ["items inside"] = true,
+		["tot weight"] = true, ["item burden"] = true }
+	-- "Stat Mods" and "Resist Mods" are headings: every stat after one (in the same box section) belongs to it,
+	-- including the first, which the game prints on the heading's own line
+	local sections, member = idSections(m)
+	local labW = 0
+	for i, f in ipairs(m.fields) do
+		if not used[f.label:lower()] and not sections[i] and not member[i] then labW = math.max(labW, textW(FONT, f.label)) end
+	end
+	labW = labW + 14
+	for i, f in ipairs(m.fields) do
+		if sections[i] then
+			local sec = sections[i]
+			y = y + 4
+			local tw = textW(FONT_B, sec.title) + 12
+			F(x0, y - 1, x0 + tw, y + lh + 3, mixC(P.panel, ACC.teal, 0.35))
+			T(FONT_B, sec.title, x0 + 6, y + 1, mixC(ACC.teal, P.text, 0.5))
+			y = y + lh + 7
+			-- two columns of "name   value" (the way the game lays them out) only when every entry fits in half the
+			-- width; otherwise one entry per line, and a line that is still too long wraps under itself
+			local inner = W - 12
+			local need = 0
+			for _, e in ipairs(sec.entries) do
+				need = math.max(need, textW(FONT, e.label) + (e.value ~= "" and (textW(FONT, e.value) + 24) or 0))
+			end
+			local cols = (not sec.enchant and need * 2 + 12 <= inner) and 2 or 1
+			local colW = math.floor(inner / cols)
+			for k, e in ipairs(sec.entries) do
+				local cx = x0 + 12 + ((k - 1) % cols) * colW
+				local vcol = e.value:find("^%-") and ACC.red or (e.value:find("^%+") and ACC.green or P.text)
+				if sec.enchant and e.value ~= "" then
+					-- an enchant: its name, then what it does, lined up like the game's own box
+					local nw = 0
+					for _, o in ipairs(sec.entries) do if o.value ~= "" then nw = math.max(nw, textW(FONT, o.label)) end end
+					T(FONT, e.label, cx, y, P.text)
+					T(FONT, fit(FONT, e.value, W - 12 - nw - 14), cx + nw + 14, y, P.text)
+					y = y + lh + 3
+				elseif e.value ~= "" then
+					T(FONT, fit(FONT, e.label, colW - textW(FONT, e.value) - 20), cx, y, P.text)
+					T(FONT, e.value, cx + colW - 12 - textW(FONT, e.value), y, mixC(vcol, P.text, vcol == P.text and 0 or 0.25))
+					if k % cols == 0 or k == #sec.entries then y = y + lh + 3 end
+				else
+					-- free text (an enchant): wrap by words inside the width
+					local line, first = "", true
+					local function flush()
+						T(FONT, line, cx + (first and 0 or 12), y, P.text)
+						y = y + lh + 3
+						first = false
+					end
+					for word in e.label:gmatch("%S+") do
+						local try = (line == "") and word or (line .. " " .. word)
+						if line ~= "" and textW(FONT, try) > (inner - (first and 0 or 12)) then flush() line = word else line = try end
+					end
+					if line ~= "" then flush() end
+				end
+			end
+			y = y + 3
+		elseif not used[f.label:lower()] and not member[i] and f.value ~= "" then
+			T(FONT, f.label, x0, y, P.muted)
+			T(FONT, fit(FONT, f.value, W - labW), x0 + labW, y, P.text)
+			y = y + lh + 3
+		end
+	end
+
+	-- containers: how full, and the rest of the numbers
+	local cap, hold = idNumber(field("capacity")), idNumber(field("holding"))
+	if cap and hold and cap > 0 then
+		y = y + 6
+		local frac = math.max(0, math.min(1, hold / cap))
+		local bw = W - 130
+		F(x0, y + 3, x0 + bw, y + lh - 3, P.track)
+		F(x0, y + 3, x0 + math.floor(bw * frac), y + lh - 3, frac > 0.9 and ACC.red or (frac > 0.75 and ACC.amber or ACC.green))
+		T(FONT, string.format("%s / %s", commas(hold), commas(cap)), x0 + bw + 8, y, P.text)
+		y = y + lh + 6
+		local cw = 0
+		for _, lab in ipairs({ "items inside", "heaviest item", "tot weight", "item burden" }) do
+			if field(lab) then cw = math.max(cw, textW(FONT, m.by[lab].label)) end
+		end
+		cw = cw + 14
+		for _, lab in ipairs({ "items inside", "heaviest item", "tot weight", "item burden" }) do
+			if field(lab) then
+				T(FONT, m.by[lab].label, x0, y, P.muted)
+				T(FONT, field(lab), x0 + cw, y, P.text)
+				y = y + lh + 3
+			end
+		end
+	end
+	for _, n in ipairs(m.notes) do
+		T(FONT, fit(FONT, n, W), x0, y, P.muted)
+		y = y + lh + 3
+	end
+	return y - y0
+end
+
+local function idDraw()
+	local win = idWin
+	if not (win and win.bodyleft and idModel) then return end
+	curWin = IDWIN
+	WindowFont(IDWIN, FONT, fontName, fontHeight, false)
+	WindowFont(IDWIN, FONT_B, fontName, fontHeight, true)
+	lh = WindowFontInfo(IDWIN, FONT, 1) + 1
+	local P = palette()
+	win:blank()
+	local W = win.bodyright - win.bodyleft + 1 - 2 * PAD
+	idBuild(P, W, win.bodyleft + PAD, win.bodytop + 8, false)
+	win:dress_window()
+	curWin = WIN
+end
+
+function IW_idSafeDraw()
+	local ok, err = pcall(idDraw)
+	if not ok and err ~= IW_idLastErr then
+		IW_idLastErr = err
+		ColourNote("red", "", "Identify card draw error: " .. tostring(err))
+	end
+end
+
+local function idEnsureWindow()
+	if idWin and WindowInfo(IDWIN, 1) then return end
+	idWin = ThemedBasicWindow(
+		IDWIN, 320, 160, 460, 300, "Identify", "center", true,
+		1, function() IW_idSafeDraw() end, function() IW_idSafeDraw() end,
+		function() idShown = false idWin = nil end,
+		fontName, fontHeight, true
+	)
+	table.insert(idWin.menu_table, "Close")
+	table.insert(idWin.menu_handlers, function() IW_idHide() end)
+end
+
+function IW_idHide()
+	idShown = false
+	if idWin then idWin:hide() end
+end
+
+-- the width (inside the card's margins) the content wants: the longest enchant line, or two columns of mods
+local function idWidthWanted(m)
+	local sections = idSections(m)
+	local enchant, mods = 0, 0
+	for _, sec in pairs(sections) do
+		local nameW, valW, text = 0, 0, 0
+		for _, e in ipairs(sec.entries) do
+			if sec.enchant and e.value ~= "" then
+				nameW = math.max(nameW, textW(FONT, e.label))
+				valW = math.max(valW, textW(FONT, e.value))
+			elseif e.value ~= "" then
+				nameW = math.max(nameW, textW(FONT, e.label))
+				valW = math.max(valW, textW(FONT, e.value))
+			else
+				text = math.max(text, textW(FONT, e.label))
+			end
+		end
+		enchant = math.max(enchant, text + 12)
+		if sec.enchant then enchant = math.max(enchant, 12 + nameW + 14 + valW)
+		elseif nameW > 0 then mods = math.max(mods, 2 * (nameW + valW + 24) + 12) end
+	end
+	return math.max(enchant, mods)
+end
+
+local function idShow()
+	idEnsureWindow()
+	curWin = IDWIN
+	WindowFont(IDWIN, FONT, fontName, fontHeight, false)
+	WindowFont(IDWIN, FONT_B, fontName, fontHeight, true)
+	lh = WindowFontInfo(IDWIN, FONT, 1) + 1
+	local P = palette()
+	-- size the card to its content (never narrower than 320, never wider than the screen allows)
+	local wantW = idWidthWanted(idModel) + 2 * PAD + 6
+	local maxW = math.max(320, (tonumber(GetInfo(281)) or 1000) - 60)
+	local newW = math.max(320, math.min(wantW, maxW))
+	if newW ~= idWin.width then idWin:resize(newW, idWin.height) end
+	local W = idWin.width - 2 * PAD - 6
+	local need = idBuild(P, W, 0, 0, true) + (idWin.bodytop or 24) + 22
+	curWin = WIN
+	local H = math.max(120, math.min(need, math.max(200, GetInfo(280) - 100)))
+	idWin:resize(idWin.width, H)
+	idShown = true
+	idWin:show()
+	pcall(function() idWin:bring_to_front() end)
+end
+
+local idGen = 0
+
+local function idFinish()
+	EnableTriggerGroup("IWid", false)
+	local cap = idCap
+	idCap = nil
+	if not cap or cap.state ~= "box" then return end
+	local model = parseIdentify(cap.lines)
+	if not (model.by.keywords or model.by.name) then return end
+	idModel = model
+	idArmed = nil
+	idShow()
+end
+
+function IW_idTimeout(gen)
+	if idCap and idCap.gen == tonumber(gen) then idFinish() end
+end
+
+function IW_idBorder(name, line, wc)
+	if idCap then return end
+	if idArmed and os.clock() - idArmed < 8 then
+		idCap = { state = "tentative", lines = { line }, gen = 0 }
+		EnableTriggerGroup("IWid", true)
+	end
+end
+
+function IW_idLine(name, line, wc)
+	local cap = idCap
+	if not cap then
+		EnableTriggerGroup("IWid", false)
+		return
+	end
+	if cap.state == "tentative" then
+		if #cap.lines == 1 and line == cap.lines[1] then return end  -- the border we already have
+		if line:match("^|%s*Keywords") then
+			cap.state = "box"
+			cap.lines[#cap.lines + 1] = line
+		else
+			idCap = nil
+			EnableTriggerGroup("IWid", false)
+			return
+		end
+	elseif line:match("^[|+]") then
+		cap.lines[#cap.lines + 1] = line
+	else
+		idFinish()
+		return
+	end
+	idGen = idGen + 1
+	cap.gen = idGen
+	DoAfterSpecial(0.8, "IW_idTimeout(" .. idGen .. ")", sendto.script)
+end
+
+-- exposed for tests
+IWTest = {
+	parseColours = parseColours, parseIdentify = parseIdentify, idModel = function() return idModel end,
+	state = function() return { inv = inv, worn = worn, bags = bags } end,
+	rows = currentRows, bagList = bagList, view = view,
+}
+]]>
+</script>
+</muclient>
