@@ -1883,7 +1883,8 @@ do
 			say("could not check for a new version (status " .. tostring(status) .. ").")
 			return
 		end
-		local theirs = page:match('%s+version="([0-9%.]+)"')
+		-- the version lives in the <plugin ...> tag (the first version="" in the file is the XML header's)
+		local theirs = (page:match("<plugin%s(.-)>") or ""):match('%sversion="([0-9%.]+)"')
 		-- only accept a complete copy of this very plugin
 		if not theirs or not page:find("<muclient>", 1, true) or not page:find("</muclient>", 1, true)
 			or not page:find(GetPluginID(), 1, true) then
