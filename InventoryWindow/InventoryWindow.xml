@@ -12,7 +12,7 @@
    save_state="y"
    date_written="2026-11-08 21:00:00"
    requires="5.07"
-   version="1.3"
+   version="1.4"
    sequence="1"
    >
 <description trim="y">
@@ -42,8 +42,10 @@ actions (wear, remove, get, put in a bag, drop, examine) or for dinv's details o
 @Yinvwin sort level|name|type@w
 
 @YItems:@w
-@Yi / inventory@w      - prints the stacked list (counts, flag letters, level, in the item's own colours)
-                     in the main window, like InvFlags, and refreshes the window as well
+@Yinvwin print on|off@w - on: i / inventory print this plugin's stacked list (counts, flag letters, level, in the item's
+                     own colours) in the main window and refresh the window. Off (the default): this plugin prints nothing
+                     and leaves i to the game or the serials plugin; the window still reads the data that goes by.
+@Yinvwin serials on|off@w - item serial numbers in that printed list (i serials shows them once)
 @Yinvwin shorterflags@w - flags print as configured in Aardwolf; this switches to the shorter [KMGH] (and back)
 @Yinvwin objflag <options>@w - hide flags in the shorter form: kept invis magic glow hum tempered cursed envenomed
                      weakened nolocate (or their letters K I M G H T C E W N); showplus marks items that lost a flag.
@@ -95,8 +97,8 @@ actions (wear, remove, get, put in a bag, drop, examine) or for dinv's details o
 
 <aliases>
   <alias match="^(?:invwin|inventorywin)(?: (.*))?$" enabled="y" regexp="y" script="IW_command" sequence="100"></alias>
-  <!-- i / inventory: the stacked list with coloured flag letters; this plugin loads first so it answers before the serials plugin -->
-  <alias match="^(i|in|inv|inve|inven|invent|invento|inventor|inventory) *$" enabled="y" regexp="y" ignore_case="y"
+  <!-- i / inventory: only enabled by "invwin print on"; while it is off the window just reads whatever inventory data goes by -->
+  <alias name="IW_i" match="^(i|in|inv|inve|inven|invent|invento|inventor|inventory) *$" enabled="y" regexp="y" ignore_case="y"
    script="IW_inventoryCmd" sequence="100"></alias>
 </aliases>
 
@@ -383,6 +385,33 @@ local function sendQuiet(cmd)
 	if TELOPT_PAGING then pcall(TelnetOptionOn, TELOPT_PAGING) end
 end
 
+-- Fiendish: a window must ask for a buffered repaint whenever it changes, or it only shows up on the next repaint.
+-- Aardwolf package snapshot (r2378 and so on) from aard_lua_extras; nil when it cannot be told.
+-- r2160 first shipped wrapped_captures; r2359 and later have BufferedRepaint() built into MUSHclient,
+-- older ones go through the repaint plugin.
+IW_MIN_WRAPPED, IW_MIN_REPAINT = 2160, 2359
+local IW_snap
+function IW_snapshot()
+	if IW_snap == nil then
+		local ok, extras = pcall(require, "aard_lua_extras")
+		local ok2, v = false, nil
+		if ok and type(extras) == "table" and extras.PackageVersion then ok2, v = pcall(extras.PackageVersion) end
+		IW_snap = (ok2 and tonumber(v)) or false
+	end
+	return IW_snap or nil
+end
+function IW_repaint()
+	local snap = IW_snapshot()
+	if BufferedRepaint and (not snap or snap >= IW_MIN_REPAINT) then BufferedRepaint()
+	elseif IsPluginInstalled("abc1a0944ae4af7586ce88dc") then CallPlugin("abc1a0944ae4af7586ce88dc", "BufferedRepaint")
+	else Redraw() end
+end
+function IW_needWrapped()   -- message for a missing wrapped_captures module
+	local snap = IW_snapshot()
+	return "needs wrapped_captures, which came with Aardwolf package r2160 or newer" ..
+		(snap and (" (yours is r" .. snap .. ")") or "") .. ". Please update the package."
+end
+
 local redrawPending = nil
 function IW_doRedraw()
 	redrawPending = nil
@@ -433,6 +462,19 @@ local function visibleFlags(flags, short)
 	return (flags:gsub("%a", function(ch) return hiddenFlags[ch] and "" or nil end))
 end
 local showPlus = GetVariable("showplus") == "1"      -- show a + when flags were hidden from an item
+local takeI = GetVariable("takei") == "1"                -- off by default: "i" belongs to the game (or the serials plugin); invwin print on to print here
+local serialsOn = GetVariable("serials") == "1"          -- item serial numbers after each name in the printed list
+local serialsOnce = false                                -- "i serials": just this once
+local SERIALS_ID = "0cbb10309587f0ee15ba78ce"            -- the Aardwolf package's aard_inventory_serials plugin
+local function serialsPluginOn()
+	return IsPluginInstalled(SERIALS_ID) and GetPluginInfo(SERIALS_ID, 17) and true or false
+end
+local function wantSerials()
+	if serialsOn or serialsOnce then return true end
+	-- the serials plugin's own "always show serial numbers" setting counts too
+	return serialsPluginOn() and tostring(GetPluginVariable(SERIALS_ID, "visible_always")) == "1"
+end
+pcall(EnableAlias, "IW_i", takeI)
 local shortFlags = GetVariable("shortflags") == "1"   -- off by default: (K)(M)(G)(H); on: [KMGH]
 local printInventory -- defined below; shows the carried list as text when you type i
 
@@ -1492,6 +1534,7 @@ function safeDraw()
 		IW_lastErr = err
 		ColourNote("red", "", "Inventory window draw error: " .. tostring(err))
 	end
+	IW_repaint()
 end
 
 ---------------------------------------------------------------------------
@@ -1543,7 +1586,7 @@ end
 
 function IW_hide()
 	shown = false
-	if InfoWin then InfoWin:hide() end
+	if InfoWin then InfoWin:hide() IW_repaint() end
 end
 
 ---------------------------------------------------------------------------
@@ -1828,8 +1871,10 @@ local HELP = {
 	{ "invwin sort level|name|type", "sort order" },
 	{ "Items", "" },
 	{ "click an item", "menu: wear, remove, get, put in a bag, drop, identify, details" },
-	{ "i / inventory", "stacked list with counts, flag letters and levels in the main window" },
+	{ "i / inventory", "with invwin print on: the stacked list with counts, flag letters and levels in the main window" },
 	{ "invwin objflag [kept invis magic glow hum tempered cursed envenomed weakened nolocate showplus|all]", "hide those flags in the [KMGH] form (letters work too); showplus marks items that lost a flag; no argument lists the options" },
+	{ "invwin serials [on|off]", "serial numbers after each name in the printed list (also on when the serials plugin always shows them); i serials shows them once" },
+	{ "invwin print [on|off]", "on: this plugin prints i / inventory; off (default): it prints nothing, only reads the data" },
 	{ "invwin shorterflags", "flags in the printed list: (K)(M)(G)(H) by default, [KMGH] when on" },
 	{ "id <item>", "the identify box also opens as a card (identify and lore work too)" },
 	{ "invwin identify wish|cast 'spell'|lore|room", "how the window identifies items; no argument shows the choices" },
@@ -1973,6 +2018,20 @@ function IW_command(name, line, wildcards)
 	elseif arg == "closeid" or arg == "idclose" or arg == "closeidentify"
 		or arg == "identify close" or arg == "identify hide" then
 		IW_idHide()
+	elseif arg == "serials" or arg:match("^serials?%s") then
+		local w = arg:gsub("^serials?%s*", "")
+		if w == "on" then serialsOn = true elseif w == "off" then serialsOn = false else serialsOn = not serialsOn end
+		SetVariable("serials", serialsOn and "1" or "0")
+		ColourNote("cyan", "", "InventoryWindow: item serial numbers in the printed list are " .. (serialsOn and "on" or "off") ..
+			(serialsPluginOn() and "  (the serials plugin's own setting is also honoured)" or "") .. ".  (invwin serials)")
+	elseif arg == "print" or arg:match("^print%s") then
+		local w = arg:gsub("^print%s*", "")
+		if w == "on" then takeI = true elseif w == "off" then takeI = false else takeI = not takeI end
+		SetVariable("takei", takeI and "1" or "0")
+		pcall(EnableAlias, "IW_i", takeI)
+		ColourNote("cyan", "", "InventoryWindow: " .. (takeI and "now prints i / inventory with its own list."
+			or "prints nothing for i / inventory (the window still reads the data).") .. "  (invwin print on|off)")
+	elseif arg == "printinv" then IW_inventoryCmd("", typedInv, {})
 	elseif arg == "update" then IW_update(true)
 	elseif arg == "update check" or arg == "check" then IW_update(false)
 	elseif arg == "identify" or arg:match("^identify ") then setIdentifyMethod(arg:gsub("^identify%s*", ""))
@@ -2031,6 +2090,8 @@ printInventory = function()
 		list[#list + 1] = it
 	end
 	ColourNote("silver", "", "")
+	local withSerials = wantSerials()
+	serialsOnce = false
 	if #list == 0 then
 		ColourNote("silver", "", "You are carrying nothing.")
 	else
@@ -2082,6 +2143,9 @@ printInventory = function()
 			for _, r in ipairs(s.runs) do
 				ColourTell(RGBColourToName(r.col or CODE.w), "", r.text)
 			end
+				if withSerials then
+				ColourTell("silver", "", "  [" .. (#s.ids < 4 and table.concat(s.ids, ",") or "many") .. "]")
+			end
 			ColourTell("white", "", " (")
 			ColourTell("lime", "", tostring(s.level))
 			ColourTell("white", "", ")")
@@ -2096,13 +2160,16 @@ end
 
 local OK_STATES = { [3] = true, [8] = true, [9] = true, [11] = true } -- the states the serials plugin accepts too
 
+local printAskedAt = -10
 function IW_inventoryCmd(name, line, wc)
+	if printAfter and os.clock() - printAskedAt < 3 then return end   -- already asked a moment ago
 	local state = tonumber(gmcp("char.status.state"))
 	if not IsConnected() or not (state and OK_STATES[state]) then
 		Send(line)  -- asleep or similar: let the game answer in its own words
 		return
 	end
 	printAfter = true
+	printAskedAt = os.clock()
 	pending.inv = nil
 	askInv()
 	DoAfterSpecial(8, "IW_printTimeout()", sendto.script)
@@ -2191,7 +2258,23 @@ end
 
 -- only an identify you typed yourself (or asked for from the window) opens the card, not the ones other
 -- plugins send
+local typedInv = "i"
 function OnPluginCommandEntered(text_)
+	-- MUSHclient checks every plugin's aliases separately, so another plugin with an "i" alias
+	-- (aard_inventory_serials) would ask the game for the list a second time. This hook runs before
+	-- any alias is matched: turn the typed "i" into our own command, which only this plugin answers.
+	if takeI then
+		local word, serialsWord = text_:match("^%s*([iI][nNvVeEtToOrRyY]*)%s*(%a*)%s*$")
+		if word and ("inventory"):find(word:lower(), 1, true) == 1 then
+			if serialsWord == "" then
+				typedInv = text_
+				return "invwin printinv"
+			elseif (serialsWord:lower() == "serial" or serialsWord:lower() == "serials") and not serialsPluginOn() then
+				typedInv, serialsOnce = text_, true     -- no serials plugin: answer "i serials" ourselves
+				return "invwin printinv"
+			end
+		end
+	end
 	if text_:match("^%s*id%s+%S") or text_:match("^%s*identify%s+%S") or text_:match("^%s*lore%s+%S")
 		or text_:match("^%s*c[a-z]*%s+['\"][^'\"]*read['\"]") then
 		idArmed = os.clock()
@@ -2439,6 +2522,7 @@ function IW_idSafeDraw()
 		IW_idLastErr = err
 		ColourNote("red", "", "Identify card draw error: " .. tostring(err))
 	end
+	IW_repaint()
 end
 
 local function idEnsureWindow()
@@ -2455,7 +2539,7 @@ end
 
 function IW_idHide()
 	idShown = false
-	if idWin then idWin:hide() end
+	if idWin then idWin:hide() IW_repaint() end
 end
 
 -- the width (inside the card's margins) the content wants: the longest enchant line, or two columns of mods
