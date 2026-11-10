@@ -42,8 +42,8 @@ actions (wear, remove, get, put in a bag, drop, examine) or for dinv's details o
 @Yinvwin sort level|name|type@w
 
 @YItems:@w
-@Yinvwin print on|off@w - on: i / inventory print this plugin's stacked list (counts, flag letters, level, in the item's
-                     own colours) in the main window and refresh the window. Off (the default): this plugin prints nothing
+@Yinvwin print on|off@w - on (the default): i / inventory print this plugin's stacked list (counts, flag letters, level, in the item's
+                     own colours) in the main window and refresh the window. Off: this plugin prints nothing
                      and leaves i to the game or the serials plugin; the window still reads the data that goes by.
 @Yinvwin serials on|off@w - item serial numbers in that printed list (i serials shows them once)
 @Yinvwin shorterflags@w - flags print as configured in Aardwolf; this switches to the shorter [KMGH] (and back)
@@ -462,7 +462,7 @@ local function visibleFlags(flags, short)
 	return (flags:gsub("%a", function(ch) return hiddenFlags[ch] and "" or nil end))
 end
 local showPlus = GetVariable("showplus") == "1"      -- show a + when flags were hidden from an item
-local takeI = GetVariable("takei") == "1"                -- off by default: "i" belongs to the game (or the serials plugin); invwin print on to print here
+local takeI = GetVariable("takei") ~= "0"                -- on by default: this plugin answers "i"; invwin print off to leave "i" to the game (or the serials plugin)
 local serialsOn = GetVariable("serials") == "1"          -- item serial numbers after each name in the printed list
 local serialsOnce = false                                -- "i serials": just this once
 local SERIALS_ID = "0cbb10309587f0ee15ba78ce"            -- the Aardwolf package's aard_inventory_serials plugin
